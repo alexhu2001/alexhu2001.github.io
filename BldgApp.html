@@ -80,8 +80,9 @@
           return;
         }
 
-        const maxVal = Math.max(...y);
-        const yMax = maxVal * 1.2;
+        const maxValHome = Math.max(...y);
+        const yMaxValAvg = Math.max(...avgY);
+        const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
 
         // Build average line arrays
         const avgX = [], avgY = [];
