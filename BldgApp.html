@@ -79,12 +79,7 @@
           document.getElementById("msg").innerText = "No values found for " + homeId;
           return;
         }
-
-        const maxValHome = Math.max(...y);
-        const yMaxValAvg = Math.max(...avgY);
-        const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
-
-        // Build average line arrays
+        
         const avgX = [], avgY = [];
         dateCols.forEach(col => {
           if (avgByMonth[col] !== undefined) {
@@ -92,6 +87,10 @@
             avgY.push(avgByMonth[col]);
           }
         });
+        
+        const maxValHome = Math.max(...y);
+        const yMaxValAvg = Math.max(...avgY);
+        const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
 
         Plotly.newPlot("chart", [
           {
