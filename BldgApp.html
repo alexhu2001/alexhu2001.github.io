@@ -35,8 +35,15 @@
       // Compute average for each month across all homes
       const avgByMonth = {};
       dateCols.forEach(col => {
-        let vals = data.map(row => +row[col]).filter(v => !isNaN(v));
-        avgByMonth[col] = d3.mean(vals);
+        let vals = data
+          .map(row => {
+            const v = row[col];
+            return (v && v.trim() !== "") ? +v : null;
+          })
+          .filter(v => v !== null && !isNaN(v));
+        if (vals.length > 0) {
+          avgByMonth[col] = d3.mean(vals);
+        }
       });
       
       // Populate dropdown
