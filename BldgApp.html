@@ -1,19 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Energy Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
 <body>
   <h1 id="title">Monthly Usage</h1>
 
-  <div>
-    <label for="homeSelect">Select Home:</label>
-    <select id="homeSelect"></select>
-  </div>
+  <label for="homeSelect">Select Home:</label>
+  <select id="homeSelect"></select>
 
   <div id="chart"></div>
-  <div id="msg"></div>
+  <div id="msg" style="color:red;"></div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     let bldg = params.get("bldg") || "7352";
-
-    document.getElementById("title").innerText = "Monthly Usage for Home " + bldg;
 
     function parseHeaderDate(s) {
       const parts = s.split("/");
@@ -28,11 +32,11 @@
       const headers = data.columns;
       const dateCols = headers.slice(1);
 
-      // Populate dropdown with all dataids
+      // Populate dropdown
       const selectEl = document.getElementById("homeSelect");
       data.forEach(row => {
         const id = row["dataid/date"];
-        if (id && id.trim() !== "") {
+        if (id) {
           const opt = document.createElement("option");
           opt.value = id;
           opt.textContent = id;
@@ -41,7 +45,6 @@
       });
       selectEl.value = bldg;
 
-      // Function to draw chart for a given home
       function drawChart(homeId) {
         const row = data.find(d => String(d["dataid/date"]).trim() === String(homeId));
         if (!row) {
@@ -63,36 +66,37 @@
           return;
         }
 
-        const trace = {
+        Plotly.newPlot("chart", [{
           x: x,
           y: y,
           type: "scatter",
           mode: "lines+markers",
           name: "kWh"
-        };
-
-        const layout = {
+        }], {
           title: "Monthly Consumption for Home " + homeId,
           xaxis: { title: "Month", type: "date" },
           yaxis: { title: "kWh" }
-        };
+        });
 
-        Plotly.newPlot("chart", [trace], layout);
         document.getElementById("title").innerText = "Monthly Usage for Home " + homeId;
+        document.getElementById("msg").innerText = "";
       }
 
       // Initial draw
       drawChart(bldg);
 
-      // Change handler
+      // Dropdown change
       selectEl.addEventListener("change", () => {
         const newId = selectEl.value;
-        // Update URL without reloading
         const url = new URL(window.location);
         url.searchParams.set("bldg", newId);
         window.history.replaceState({}, "", url);
         drawChart(newId);
       });
+    }).catch(err => {
+      document.getElementById("msg").innerText = "Error loading CSV: " + err;
+      console.error(err);
     });
   </script>
 </body>
+</html>
