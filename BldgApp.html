@@ -1,98 +1,61 @@
-<body>
-  <h1 id="title">Monthly Usage</h1>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const bldg = params.get("bldg") || "7352";
+  document.getElementById("title").innerText = "Monthly Usage for Home " + bldg;
 
-  <div>
-    <label for="homeSelect">Select Home:</label>
-    <select id="homeSelect"></select>
-  </div>
+  // Helper to parse header dates like "5/1/2024"
+  function parseHeaderDate(s) {
+    const parts = s.split("/");
+    if (parts.length === 3) {
+      const [m, d, y] = parts.map(p => parseInt(p, 10));
+      return new Date(y, m - 1, d);
+    }
+    return new Date(s);
+  }
 
-  <div id="chart"></div>
-  <div id="msg"></div>
+  d3.csv("DataSummary.csv").then(function(data) {
+    // All column names
+    const headers = data.columns;
+    // Skip the first column ("dataid/date")
+    const dateCols = headers.slice(1);
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    let bldg = params.get("bldg") || "7352";
-
-    document.getElementById("title").innerText = "Monthly Usage for Home " + bldg;
-
-    function parseHeaderDate(s) {
-      const parts = s.split("/");
-      if (parts.length === 3) {
-        const [m, d, y] = parts.map(p => parseInt(p, 10));
-        return new Date(y, m - 1, d);
-      }
-      return new Date(s);
+    // Find the row for this home
+    const row = data.find(d => String(d["dataid/date"]).trim() === String(bldg));
+    if (!row) {
+      document.getElementById("chart").innerText = "No data for " + bldg;
+      return;
     }
 
-    d3.csv("DataSummary.csv").then(function(data) {
-      const headers = data.columns;
-      const dateCols = headers.slice(1);
-
-      // Populate dropdown with all dataids
-      const selectEl = document.getElementById("homeSelect");
-      data.forEach(row => {
-        const id = row["dataid/date"];
-        if (id && id.trim() !== "") {
-          const opt = document.createElement("option");
-          opt.value = id;
-          opt.textContent = id;
-          selectEl.appendChild(opt);
-        }
-      });
-      selectEl.value = bldg;
-
-      // Function to draw chart for a given home
-      function drawChart(homeId) {
-        const row = data.find(d => String(d["dataid/date"]).trim() === String(homeId));
-        if (!row) {
-          document.getElementById("msg").innerText = "No data for " + homeId;
-          return;
-        }
-
-        const x = [], y = [];
-        dateCols.forEach(col => {
-          const val = row[col];
-          if (val && val.trim() !== "") {
-            x.push(parseHeaderDate(col));
-            y.push(+val);
-          }
-        });
-
-        if (x.length === 0) {
-          document.getElementById("msg").innerText = "No values found for " + homeId;
-          return;
-        }
-
-        const trace = {
-          x: x,
-          y: y,
-          type: "scatter",
-          mode: "lines+markers",
-          name: "kWh"
-        };
-
-        const layout = {
-          title: "Monthly Consumption for Home " + homeId,
-          xaxis: { title: "Month", type: "date" },
-          yaxis: { title: "kWh" }
-        };
-
-        Plotly.newPlot("chart", [trace], layout);
-        document.getElementById("title").innerText = "Monthly Usage for Home " + homeId;
+    // Build arrays of dates and values
+    const x = [];
+    const y = [];
+    dateCols.forEach(col => {
+      const val = row[col];
+      if (val && val.trim() !== "") {
+        x.push(parseHeaderDate(col));
+        y.push(+val);
       }
-
-      // Initial draw
-      drawChart(bldg);
-
-      // Change handler
-      selectEl.addEventListener("change", () => {
-        const newId = selectEl.value;
-        // Update URL without reloading
-        const url = new URL(window.location);
-        url.searchParams.set("bldg", newId);
-        window.history.replaceState({}, "", url);
-        drawChart(newId);
-      });
     });
-  </script>
-</body>
+
+    if (x.length === 0) {
+      document.getElementById("chart").innerText = "No values found for " + bldg;
+      return;
+    }
+
+    const trace = {
+      x: x,
+      y: y,
+      type: "scatter",
+      mode: "lines+markers",
+      name: "kWh"
+    };
+
+    const layout = {
+      title: "Monthly Consumption",
+      xaxis: { title: "Month", type: "date" },
+      yaxis: { title: "kWh" }
+    };
+
+    Plotly.newPlot("chart", [trace], layout);
+  });
+</script>
