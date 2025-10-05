@@ -66,6 +66,9 @@
           return;
         }
 
+        const maxVal = Math.max(...y);
+        const yMax = maxVal * 1.2;
+
         Plotly.newPlot("chart", [{
           x: x,
           y: y,
@@ -75,9 +78,18 @@
         }], {
           title: "Monthly Consumption for Home " + homeId,
           xaxis: { title: "Month", type: "date" },
-          yaxis: { title: "kWh" }
+          yaxis: { title: "kWh", range: [0, yMax] },
+          shapes: [
+            {
+              type: "line",
+              x0: Math.min(...x),
+              x1: Math.max(...x),
+              y0: 500,
+              y1: 500,
+              line: { color: "red", dash: "dot" }
+            }
+          ]
         });
-
         document.getElementById("title").innerText = "Monthly Usage for Home " + homeId;
         document.getElementById("msg").innerText = "";
       }
