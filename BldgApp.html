@@ -31,7 +31,19 @@
     d3.csv("DataSummary.csv").then(function(data) {
       const headers = data.columns;
       const dateCols = headers.slice(1);
-
+      
+      // Compute average across all homes and all months
+      let allValues = [];
+      data.forEach(row => {
+        dateCols.forEach(col => {
+          const val = row[col];
+          if (val && val.trim() !== "") {
+            allValues.push(+val);
+          }
+        });
+      });
+      const avgAllHomes = d3.mean(allValues);
+      
       // Populate dropdown
       const selectEl = document.getElementById("homeSelect");
       data.forEach(row => {
@@ -84,12 +96,13 @@
               type: "line",
               x0: Math.min(...x),
               x1: Math.max(...x),
-              y0: 500,
-              y1: 500,
+              y0: avgAllHomes,
+              y1: avgAllHomes,
               line: { color: "red", dash: "dot" }
             }
           ]
         });
+        
         document.getElementById("title").innerText = "Monthly Usage for Home " + homeId;
         document.getElementById("msg").innerText = "";
       }
