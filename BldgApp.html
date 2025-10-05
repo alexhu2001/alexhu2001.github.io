@@ -1,100 +1,61 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Energy dashboard</title>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script src="https://d3js.org/d3.v5.min.js"></script>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 24px; }
-    #chart { height: 520px; }
-    #msg { color: #a00; margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <h1 id="title">Monthly usage</h1>
-  <div id="chart"></div>
-  <div id="msg"></div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const bldg = params.get("bldg") || "7352";
+  document.getElementById("title").innerText = "Monthly Usage for Home " + bldg;
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const bldg = params.get("bldg") || "7352";
-    document.getElementById("title").innerText = `Monthly Electricity Consumption — Home ${bldg}`;
+  // Helper to parse header dates like "5/1/2024"
+  function parseHeaderDate(s) {
+    const parts = s.split("/");
+    if (parts.length === 3) {
+      const [m, d, y] = parts.map(p => parseInt(p, 10));
+      return new Date(y, m - 1, d);
+    }
+    return new Date(s);
+  }
 
-    // Parse header dates like "5/1/2024"
-    function parseHeaderDate(s) {
-      const parts = s.split('/');
-      if (parts.length === 3) {
-        const [m, d, y] = parts.map(p => parseInt(p, 10));
-        return new Date(y, m - 1, d);
-      }
-      // Fallback
-      return new Date(s);
+  d3.csv("DataSummary.csv").then(function(data) {
+    // All column names
+    const headers = data.columns;
+    // Skip the first column ("dataid/date")
+    const dateCols = headers.slice(1);
+
+    // Find the row for this home
+    const row = data.find(d => String(d["dataid/date"]).trim() === String(bldg));
+    if (!row) {
+      document.getElementById("chart").innerText = "No data for " + bldg;
+      return;
     }
 
-    d3.csv("DataSummary.csv").then(function(data) {
-      // Expect a column "dataid/date" and many date columns
-      const headers = data.columns;
-      if (!headers || headers.length < 2) {
-        document.getElementById("msg").innerText = "CSV format not recognized.";
-        return;
+    // Build arrays of dates and values
+    const x = [];
+    const y = [];
+    dateCols.forEach(col => {
+      const val = row[col];
+      if (val && val.trim() !== "") {
+        x.push(parseHeaderDate(col));
+        y.push(+val);
       }
-      const dateCols = headers.filter(h => h !== "dataid/date");
-
-      // Find the row matching the requested dataid
-      const row = data.find(d => String(d["dataid/date"]).trim() === String(bldg).trim());
-      if (!row) {
-        document.getElementById("msg").innerText = `No row found for dataid ${bldg}.`;
-        return;
-      }
-
-      // Build x/y from header dates + row values, skipping blanks
-      const points = [];
-      dateCols.forEach(col => {
-        const raw = row[col];
-        if (raw && raw.trim() !== "") {
-          const val = +raw;
-          if (!isNaN(val)) {
-            points.push({ x: parseHeaderDate(col), y: val });
-          }
-        }
-      });
-
-      if (points.length === 0) {
-        document.getElementById("msg").innerText = `No non-empty monthly values for ${bldg}.`;
-        return;
-      }
-
-      // Sort by date in case headers aren’t strictly chronologic
-      points.sort((a, b) => a.x - b.x);
-
-      const traceLine = {
-        x: points.map(p => p.x),
-        y: points.map(p => p.y),
-        type: "scatter",
-        mode: "lines+markers",
-        name: "kWh",
-        line: { color: "#1f77b4" }
-      };
-      const traceBar = {
-        x: points.map(p => p.x),
-        y: points.map(p => p.y),
-        type: "bar",
-        name: "kWh (bars)",
-        marker: { color: "rgba(31,119,180,0.25)" }
-      };
-
-      Plotly.newPlot("chart", [traceBar, traceLine], {
-        title: `Monthly consumption — ${bldg}`,
-        xaxis: { title: "Month", type: "date" },
-        yaxis: { title: "kWh" },
-        legend: { orientation: "h" },
-        margin: { t: 48, r: 24, b: 48, l: 64 }
-      }, {responsive: true});
-    }).catch(err => {
-      document.getElementById("msg").innerText = "Failed to load CSV. Check file path and CORS.";
-      console.error(err);
     });
-  </script>
-</body>
-</html>
+
+    if (x.length === 0) {
+      document.getElementById("chart").innerText = "No values found for " + bldg;
+      return;
+    }
+
+    const trace = {
+      x: x,
+      y: y,
+      type: "scatter",
+      mode: "lines+markers",
+      name: "kWh"
+    };
+
+    const layout = {
+      title: "Monthly Consumption",
+      xaxis: { title: "Month", type: "date" },
+      yaxis: { title: "kWh" }
+    };
+
+    Plotly.newPlot("chart", [trace], layout);
+  });
+</script>
