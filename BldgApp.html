@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Energy Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+<body>
+  <h1 id="title"></h1>
+  <div id="chart"></div>
+
+  <script>
+    // Get building ID from URL (?bldg=7352)
+    const params = new URLSearchParams(window.location.search);
+    const bldg = params.get("bldg") || "7352"; // default
+
+    document.getElementById("title").innerText = "Monthly Usage for Home " + bldg;
+
+    d3.csv("data/DataSummary.csv").then(function(data) {
+      // The first row has headers like "5/1/2024", "6/1/2024", ...
+      const columns = data.columns.slice(1); // skip "dataid/date"
+
+      // Find the row for this home
+      const row = data.find(d => d["dataid/date"] === bldg);
+
+      if (!row) {
+        document.getElementById("chart").innerText = "No data for " + bldg;
+        return;
+      }
+
+      // Build arrays of dates and values
+      const x = [];
+      const y = [];
+      columns.forEach(col => {
+        const val = row[col];
+        if (val && val.trim() !== "") {
+          x.push(new Date(col));   // parse header as date
+          y.push(+val);            // numeric value
+        }
+      });
+
+      // Plot
+      const trace = {
+        x: x,
+        y: y,
+        type: "scatter",
+        mode: "lines+markers",
+        name: "kWh"
+      };
+
+      const layout = {
+        title: "Monthly Consumption",
+        xaxis: { title: "Month", type: "date" },
+        yaxis: { title: "kWh" }
+      };
+
+      Plotly.newPlot("chart", [trace], layout);
+    });
+  </script>
+</body>
+</html>
