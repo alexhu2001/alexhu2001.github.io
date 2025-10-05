@@ -17,7 +17,7 @@
 
     document.getElementById("title").innerText = "Monthly Usage for Home " + bldg;
 
-    d3.csv("data/MonthlySummary.csv").then(function(data) {
+    d3.csv("DataSummary.csv").then(function(data) {
       // Filter rows for this home
       const filtered = data.filter(d => d.dataid === bldg);
 
