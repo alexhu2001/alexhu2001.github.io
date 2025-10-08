@@ -1,12 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+#
+<style>
+  .tab { overflow: hidden; border-bottom: 1px solid #ccc; }
+  .tab button { background: none; border: none; padding: 10px 16px; cursor: pointer; }
+  .tab button.active { background: #ccc; }
+  .tabcontent { display: none; padding: 12px; }
+</style>
+#
   <meta charset="UTF-8" />
   <title>Energy Dashboard</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="https://d3js.org/d3.v5.min.js"></script>
 </head>
 <body>
+
+<!-- Tab buttons -->
+<div class="tab">
+  <button class="tablinks" onclick="openTab(event, 'Dashboard')" id="defaultOpen">Dashboard</button>
+  <button class="tablinks" onclick="openTab(event, 'Info')">Info</button>
+</div>
+#
+<!-- Dashboard tab -->
+<div id="Dashboard" class="tabcontent">
+  <!-- Existing content goes here -->
+  <h1 id="title">Monthly Usage</h1>
+  <label for="homeSelect">Select Home:</label>
+  <select id="homeSelect"></select>
+  <div id="chart"></div>
+  <div id="msg" style="color:red;"></div>
+</div>
+
+<!-- Info tab -->
+<div id="Info" class="tabcontent">
+  <h2>About this Dashboard</h2>
+  <p>This tool shows monthly electricity consumption for selected homes, compared with the community average.</p>
+</div>
+#
+  
   <h1 id="title">Monthly Usage</h1>
 
   <label for="homeSelect">Select Home:</label>
@@ -133,6 +165,17 @@
       document.getElementById("msg").innerText = "Error loading CSV: " + err;
       console.error(err);
     });
+    #
+    // Tab switching
+function openTab(evt, tabName) {
+  document.querySelectorAll(".tabcontent").forEach(el => el.style.display = "none");
+  document.querySelectorAll(".tablinks").forEach(el => el.classList.remove("active"));
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.classList.add("active");
+}
+// Open default tab
+document.getElementById("defaultOpen").click();
+    #
   </script>
 </body>
 </html>
