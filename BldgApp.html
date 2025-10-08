@@ -22,22 +22,18 @@
   <button class="tablinks" onclick="openTab(event, 'Info')">Info</button>
 </div>
 
-
+<!-- Dashboard tab -->
+  <h1 id="title">Monthly Usage</h1>
+  <label for="homeSelect">Select Home:</label>
+  <select id="homeSelect"></select>
+  <div id="chart"></div>
+  <div id="msg" style="color:red;"></div>
 
 <!-- Info tab -->
 <div id="Info" class="tabcontent">
   <h2>About this Dashboard</h2>
   <p>This tool shows monthly electricity consumption for selected homes, compared with the community average.</p>
 </div>
-
-  
-  <h1 id="title">Monthly Usage</h1>
-
-  <label for="homeSelect">Select Home:</label>
-  <select id="homeSelect"></select>
-
-  <div id="chart"></div>
-  <div id="msg" style="color:red;"></div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
