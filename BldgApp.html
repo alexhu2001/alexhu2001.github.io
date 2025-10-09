@@ -71,7 +71,7 @@
       // Populate dropdown
       const selectEl = document.getElementById("homeSelect");
       data.forEach(row => {
-        const id = row["dataid/date"];
+        const id = row["dataid"];
         if (id) {
           const opt = document.createElement("option");
           opt.value = id;
@@ -82,7 +82,7 @@
       selectEl.value = bldg;
 
       function drawChart(homeId) {
-        const row = data.find(d => String(d["dataid/date"]).trim() === String(homeId));
+        const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
         if (!row) {
           document.getElementById("msg").innerText = "No data for " + homeId;
           return;
