@@ -208,6 +208,9 @@ Promise.all([
       }));
     }
 
+    const maxValS = d3.max(summerData, d => d.val);
+    const maxValW = d3.max(winterData, d => d.val);
+
     Plotly.newPlot("summerChart", makeTraces(summerData), {
       barmode: "group",
       title: "Summer by Category (%)",
