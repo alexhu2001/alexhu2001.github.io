@@ -31,10 +31,10 @@
   <div id="msg" style="color:red;"></div>
   <!-- ===== Winter/Summer Comparison Section START ===== -->
   <hr>
-  <h2>Winter vs Summer Usage by Category</h2>
+  <h2>Seasonal Usage by Category (%)</h2>
   <label for="homeSelectSeason">Select Home:</label>
-  <select id="homeSelectSeason"></select>
-  <div id="seasonChart"></div>
+  <div id="summerChart"></div>
+  <div id="winterChart"></div>
   <!-- ===== Winter/Summer Comparison Section END ===== -->
 </div>
 
@@ -158,72 +158,76 @@
         window.history.replaceState({}, "", url);
         drawChart(newId);
       });
-      <!-- ===== Winter/Summer Comparison Code START ===== -->
+<!-- ===== Winter/Summer Comparison Code START ===== -->
 Promise.all([
   d3.csv("Category_SummerDailyAvg.csv"),
   d3.csv("Category_WinterDailyAvg.csv")
 ]).then(([summer, winter]) => {
-  const selectEl = document.getElementById("homeSelectSeason");
-  const ids = summer.map(d => d.dataid);
-  ids.forEach(id => {
-    const opt = document.createElement("option");
-    opt.value = id;
-    opt.text = id;
-    selectEl.appendChild(opt);
-  });
 
-  function drawSeasonChart(homeId) {
+  function avgRow(data) {
+    const result = {};
+    data.columns.slice(1).forEach(col => {
+      const vals = data.map(r => +r[col]).filter(v => v > 0);
+      if (vals.length > 0) result[col] = d3.mean(vals);
+    });
+    return result;
+  }
+  const sAvg = avgRow(summer);
+  const wAvg = avgRow(winter);
+
+  function prepPercent(row, avg, labelHome, labelAvg) {
+    const entries = Object.keys(row)
+      .filter(k => k !== "dataid" && +row[k] > 0)
+      .map(k => ({cat: k, val: +row[k]}));
+    const total = d3.sum(entries, d => d.val);
+    const homeData = entries.map(d => ({cat: d.cat, val: d.val / total * 100, type: labelHome}));
+
+    const avgEntries = Object.keys(avg)
+      .filter(k => avg[k] > 0)
+      .map(k => ({cat: k, val: avg[k]}));
+    const avgTotal = d3.sum(avgEntries, d => d.val);
+    const avgData = avgEntries.map(d => ({cat: d.cat, val: d.val / avgTotal * 100, type: labelAvg}));
+
+    return [...homeData, ...avgData];
+  }
+
+  function drawSeasonCharts(homeId) {
     const sRow = summer.find(d => d.dataid === homeId);
     const wRow = winter.find(d => d.dataid === homeId);
 
-    // 计算社区平均（忽略0）
-    function avgRow(data) {
-      const result = {};
-      data.columns.slice(1).forEach(col => {
-        const vals = data.map(r => +r[col]).filter(v => v > 0);
-        if (vals.length > 0) result[col] = d3.mean(vals);
-      });
-      return result;
-    }
-    const sAvg = avgRow(summer);
-    const wAvg = avgRow(winter);
+    const summerData = prepPercent(sRow, sAvg, "Summer (Home)", "Summer (Avg)");
+    const winterData = prepPercent(wRow, wAvg, "Winter (Home)", "Winter (Avg)");
 
-    // 准备绘图数据（只保留非零项）
-    function prep(row, label) {
-      return Object.keys(row)
-        .filter(k => k !== "dataid" && +row[k] > 0)
-        .map(k => ({cat: k, val: +row[k], type: label}));
-    }
-    function prepAvg(avg, label) {
-      return Object.keys(avg)
-        .filter(k => avg[k] > 0)
-        .map(k => ({cat: k, val: avg[k], type: label}));
+    function makeTraces(data) {
+      const types = [...new Set(data.map(d => d.type))];
+      return types.map(t => ({
+        x: data.filter(d => d.type === t).map(d => d.cat),
+        y: data.filter(d => d.type === t).map(d => d.val),
+        name: t,
+        type: "bar"
+      }));
     }
 
-    const data = [
-      ...prep(sRow, "Summer (Home)"),
-      ...prep(wRow, "Winter (Home)"),
-      ...prepAvg(sAvg, "Summer (Avg)"),
-      ...prepAvg(wAvg, "Winter (Avg)")
-    ];
-
-    const types = [...new Set(data.map(d => d.type))];
-    const traces = types.map(t => ({
-      x: data.filter(d => d.type === t).map(d => d.cat),
-      y: data.filter(d => d.type === t).map(d => d.val),
-      name: t,
-      type: "bar"
-    }));
-
-    Plotly.newPlot("seasonChart", traces, {
+    Plotly.newPlot("summerChart", makeTraces(summerData), {
       barmode: "group",
-      title: `Home ${homeId} vs Community Avg (Winter/Summer)`,
-      yaxis: {title: "kWh/day"}
+      title: "Summer by Category (%)",
+      yaxis: {title: "% of total", range: [0, 100]}
+    });
+
+    Plotly.newPlot("winterChart", makeTraces(winterData), {
+      barmode: "group",
+      title: "Winter by Category (%)",
+      yaxis: {title: "% of total", range: [0, 100]}
     });
   }
 
-  selectEl.addEventListener("change", e => drawSeasonChart(e.target.value));
-  drawSeasonChart(ids[0]); // 默认第一个
+  // 每次切换 Monthly 的 homeSelect 时，自动更新冬夏图
+  document.getElementById("homeSelect").addEventListener("change", e => {
+    drawSeasonCharts(e.target.value);
+  });
+
+  // 初始绘制
+  drawSeasonCharts(bldg);
 });
 <!-- ===== Winter/Summer Comparison Code END ===== -->
 
