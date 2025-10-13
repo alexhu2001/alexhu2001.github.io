@@ -211,13 +211,13 @@ Promise.all([
     Plotly.newPlot("summerChart", makeTraces(summerData), {
       barmode: "group",
       title: "Summer by Category (%)",
-      yaxis: {title: "% of total", range: [0, 100]}
+      yaxis: {title: "% of total", range: [0, maxVal * 1.2]}
     });
 
     Plotly.newPlot("winterChart", makeTraces(winterData), {
       barmode: "group",
       title: "Winter by Category (%)",
-      yaxis: {title: "% of total", range: [0, 100]}
+      yaxis: {title: "% of total", range: [0, maxVal * 1.2]}
     });
   }
 
