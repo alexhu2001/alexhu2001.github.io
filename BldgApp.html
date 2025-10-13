@@ -159,7 +159,6 @@
         drawChart(newId);
       });
       <!-- ===== Winter/Summer Comparison Code START ===== -->
-<script>
 Promise.all([
   d3.csv("Category_SummerDailyAvg.csv"),
   d3.csv("Category_WinterDailyAvg.csv")
@@ -226,7 +225,6 @@ Promise.all([
   selectEl.addEventListener("change", e => drawSeasonChart(e.target.value));
   drawSeasonChart(ids[0]); // 默认第一个
 });
-</script>
 <!-- ===== Winter/Summer Comparison Code END ===== -->
 
     }).catch(err => {
