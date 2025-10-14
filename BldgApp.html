@@ -244,9 +244,12 @@ Promise.all([
     drawSeasonCharts(e.target.value);
   });
 
-  // 初始绘制
+// 初始绘制
+if (data.find(d => d.dataid === bldg)) {
   drawSeasonCharts(bldg);
+}
 });
+
 <!-- ===== Winter/Summer Comparison Code END ===== -->
 
     }).catch(err => {
