@@ -202,9 +202,8 @@ Promise.all([
 
   function drawSeasonCharts(homeId) {
     document.getElementById("msg").innerText = "";
-
-const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
-const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
+    const sRow = summer.find(d => d.dataid === homeId);
+    const wRow = winter.find(d => d.dataid === homeId);
 
 
     const summerData = prepPercent(sRow, sAvg, "Home Average", "Community Average");
