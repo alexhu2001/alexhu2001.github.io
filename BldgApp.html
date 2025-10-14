@@ -115,7 +115,7 @@ function safePlot(divId, data, layout) {
           }
         });
         if (x.length === 0) {
-          document.getElementById("msg").innerText = "No values found for " + homeId;
+          document.getElementById("msg").innerText = "No values found for Home " + homeId;
           safePlot("chart", [], {});   // hide chart properly
           return;
         }
@@ -241,13 +241,13 @@ function drawSeasonCharts(homeId) {
 
   safePlot("summerChart", makeTraces(summerData), {
     barmode: "group",
-    title: "Summer Energy Usage Distribution by Category for " + homeId,
+    title: "Summer Energy Usage Distribution by Category for Home " + homeId,
     yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] }
   });
 
   safePlot("winterChart", makeTraces(winterData), {
     barmode: "group",
-    title: "Winter Energy Usage Distribution by Category for " + homeId,
+    title: "Winter Energy Usage Distribution by Category for Home " + homeId,
     yaxis: { title: "% of total household energy use", range: [0, maxValW * 1.2] }
   });
 }
