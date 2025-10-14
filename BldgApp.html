@@ -117,6 +117,7 @@ function safePlot(divId, data, layout) {
         });
         if (x.length === 0) {
           document.getElementById("msg").innerText = "No values found for " + homeId;
+          safePlot("chart", [], {});   // hide chart properly
           return;
         }
         
