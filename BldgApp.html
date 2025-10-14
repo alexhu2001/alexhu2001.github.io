@@ -56,13 +56,16 @@
       }
       return new Date(s);
     }
-// 通用绘图函数：无数据则隐藏，有数据则绘制
+//通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
   const div = document.getElementById(divId);
+  // Always reset visibility before checking
+  div.style.display = "block";
+  div.innerHTML = ""; // clear any old content
+
   if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
-    div.style.display = "none";   // 没数据 → 隐藏
+    div.style.display = "none";   // hide if no data
   } else {
-    div.style.display = "block";  // 有数据 → 显示并绘制
     Plotly.newPlot(divId, data, layout, {responsive:true});
   }
 }
@@ -154,7 +157,7 @@ function safePlot(divId, data, layout) {
 
       // Initial draw
       drawChart(bldg);
-
+      document.getElementById("msg").innerText = "";
       // Dropdown change
       selectEl.addEventListener("change", () => {
         const newId = selectEl.value;
@@ -197,6 +200,7 @@ Promise.all([
   }
 
   function drawSeasonCharts(homeId) {
+    document.getElementById("msg").innerText = "";
     const sRow = summer.find(d => d.dataid === homeId);
     const wRow = winter.find(d => d.dataid === homeId);
 
