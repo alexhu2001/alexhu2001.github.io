@@ -66,7 +66,7 @@ function safePlot(divId, data, layout) {
   if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
     div.style.display = "none";   // hide if no data
   } else {
-    Plotly.newPlot(divId, data, layout, {responsive:true});
+    safeplot(divId, data, layout, {responsive:true});
   }
 }
     d3.csv("DataSummary.csv").then(function(data) {
