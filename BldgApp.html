@@ -195,17 +195,22 @@ Promise.all([
     const sRow = summer.find(d => d.dataid === homeId);
     const wRow = winter.find(d => d.dataid === homeId);
 
-    const summerData = prepPercent(sRow, sAvg, "Home Average)", "Community Average)");
-    const winterData = prepPercent(wRow, wAvg, "Home Average)", "Community Average)");
+    const summerData = prepPercent(sRow, sAvg, "Home Average", "Community Average");
+    const winterData = prepPercent(wRow, wAvg, "Home Average", "Community Average");
 
     function makeTraces(data) {
       const types = [...new Set(data.map(d => d.type))];
-      return types.map(t => ({
-        x: data.filter(d => d.type === t).map(d => d.cat),
-        y: data.filter(d => d.type === t).map(d => d.val),
-        name: t,
-        type: "bar"
-      }));
+      return types.map(t => {
+        const filtered = data.filter(d => d.type === t);
+        return {
+          x: filtered.map(d => d.cat),
+          y: filtered.map(d => d.val),
+          name: t,
+          type: "bar",
+          text: filtered.map(d => d.val.toFixed(1) + "%"),  // show % with 1 decimal
+          textposition: "auto"  // places labels inside or above bars automatically
+          };
+      });
     }
 
     const maxValS = d3.max(summerData, d => d.val);
