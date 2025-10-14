@@ -59,11 +59,8 @@
 //通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
   const div = document.getElementById(divId);
-  // Always reset visibility before checking
-  div.style.display = "block";
-  div.innerHTML = ""; // clear any old content
 
-
+  
     Plotly.newPlot(divId, data, layout, {responsive:true});
   }
 }
