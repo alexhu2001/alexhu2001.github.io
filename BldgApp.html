@@ -183,64 +183,75 @@ Promise.all([
   const sAvg = avgRow(summer);
   const wAvg = avgRow(winter);
 
-  function prepPercent(row, avg, labelHome, labelAvg) {
-    const entries = Object.keys(row)
-      .filter(k => k !== "dataid" && +row[k] > 0)
-      .map(k => ({cat: k, val: +row[k]}));
-    if (!row) return [];
-      const entries = Object.keys(row)
+function prepPercent(row, avg, labelHome, labelAvg) {
+  if (!row) return [];   // guard against missing row
+
+  const entries = Object.keys(row)
     .filter(k => k !== "dataid" && +row[k] > 0)
-    .map(k => ({cat: k, val: +row[k]}));
-    const total = d3.sum(entries, d => d.val);
-    const homeData = entries.map(d => ({cat: d.cat, val: d.val / total * 100, type: labelHome}));
+    .map(k => ({ cat: k, val: +row[k] }));
 
-    const avgEntries = Object.keys(avg)
-      .filter(k => avg[k] > 0)
-      .map(k => ({cat: k, val: avg[k]}));
-    const avgTotal = d3.sum(avgEntries, d => d.val);
-    const avgData = avgEntries.map(d => ({cat: d.cat, val: d.val / avgTotal * 100, type: labelAvg}));
+  const total = d3.sum(entries, d => d.val);
+  const homeData = entries.map(d => ({
+    cat: d.cat,
+    val: d.val / total * 100,
+    type: labelHome
+  }));
 
-    return [...homeData, ...avgData];
-  }
+  const avgEntries = Object.keys(avg)
+    .filter(k => avg[k] > 0)
+    .map(k => ({ cat: k, val: avg[k] }));
 
-  function drawSeasonCharts(homeId) {
-    document.getElementById("msg").innerText = "";
-const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
-const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
+  const avgTotal = d3.sum(avgEntries, d => d.val);
+  const avgData = avgEntries.map(d => ({
+    cat: d.cat,
+    val: d.val / avgTotal * 100,
+    type: labelAvg
+  }));
 
-    const summerData = prepPercent(sRow, sAvg, "Home Average", "Community Average");
-    const winterData = prepPercent(wRow, wAvg, "Home Average", "Community Average");
+  return [...homeData, ...avgData];
+}
 
-    function makeTraces(data) {
-      const types = [...new Set(data.map(d => d.type))];
-      return types.map(t => {
-        const filtered = data.filter(d => d.type === t);
-        return {
-          x: filtered.map(d => d.cat),
-          y: filtered.map(d => d.val),
-          name: t,
-          type: "bar",
-          text: filtered.map(d => d.val.toFixed(1) + "%"),  // show % with 1 decimal
-          textposition: "outside"  // places labels above bars
-          };
-      });
-    }
+function drawSeasonCharts(homeId) {
+  document.getElementById("msg").innerText = "";
 
-    const maxValS = d3.max(summerData, d => d.val);
-    const maxValW = d3.max(winterData, d => d.val);
+  // Always coerce IDs to string for reliable matching
+  const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
+  const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
 
-    safePlot("summerChart", makeTraces(summerData), {
-      barmode: "group",
-      title: "Summer Energy Usage Distribution by Category for " + homeId,
-      yaxis: {title: "% of total household energy use", range: [0, maxValS * 1.2]}
-    });
+  const summerData = sRow ? prepPercent(sRow, sAvg, "Home", "Community") : [];
+  const winterData = wRow ? prepPercent(wRow, wAvg, "Home", "Community") : [];
 
-    safePlot("winterChart", makeTraces(winterData), {
-      barmode: "group",
-      title: "Winter Energy Usage Distribution by Category for " + homeId,
-      yaxis: {title: "% of total household energy use", range: [0, maxValW * 1.2]}
+  function makeTraces(data) {
+    const types = [...new Set(data.map(d => d.type))];
+    return types.map(t => {
+      const filtered = data.filter(d => d.type === t);
+      return {
+        x: filtered.map(d => d.cat),
+        y: filtered.map(d => d.val),
+        name: t,
+        type: "bar",
+        text: filtered.map(d => d.val.toFixed(1) + "%"),
+        textposition: "outside"
+      };
     });
   }
+
+  const maxValS = d3.max(summerData, d => d.val) || 0;
+  const maxValW = d3.max(winterData, d => d.val) || 0;
+
+  safePlot("summerChart", makeTraces(summerData), {
+    barmode: "group",
+    title: "Summer Energy Usage Distribution by Category for " + homeId,
+    yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] }
+  });
+
+  safePlot("winterChart", makeTraces(winterData), {
+    barmode: "group",
+    title: "Winter Energy Usage Distribution by Category for " + homeId,
+    yaxis: { title: "% of total household energy use", range: [0, maxValW * 1.2] }
+  });
+}
+
 
   // 每次切换 Monthly 的 homeSelect 时，自动更新冬夏图
   document.getElementById("homeSelect").addEventListener("change", e => {
