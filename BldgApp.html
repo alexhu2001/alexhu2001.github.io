@@ -225,7 +225,7 @@ Promise.all([
     const maxValS = d3.max(summerData, d => d.val);
     const maxValW = d3.max(winterData, d => d.val);
 
-    safewPlot("summerChart", makeTraces(summerData), {
+    safePlot("summerChart", makeTraces(summerData), {
       barmode: "group",
       title: "Summer Energy Usage Distribution by Category (Home vs. Community Average)",
       yaxis: {title: "% of total household energy use", range: [0, maxValS * 1.2]}
