@@ -205,8 +205,9 @@ Promise.all([
     document.getElementById("summerChart").style.display = "none";
     document.getElementById("winterChart").style.display = "none";
 
-    const sRow = summer.find(d => d.dataid === homeId);
-    const wRow = winter.find(d => d.dataid === homeId);
+const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
+const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
+
 
     const summerData = prepPercent(sRow, sAvg, "Home Average", "Community Average");
     const winterData = prepPercent(wRow, wAvg, "Home Average", "Community Average");
