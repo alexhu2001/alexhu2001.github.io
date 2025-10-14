@@ -56,7 +56,16 @@
       }
       return new Date(s);
     }
-
+// 通用绘图函数：无数据则隐藏，有数据则绘制
+function safePlot(divId, data, layout) {
+  const div = document.getElementById(divId);
+  if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
+    div.style.display = "none";   // 没数据 → 隐藏
+  } else {
+    div.style.display = "block";  // 有数据 → 显示并绘制
+    Plotly.newPlot(divId, data, layout, {responsive:true});
+  }
+}
     d3.csv("DataSummary.csv").then(function(data) {
       const headers = data.columns;
       const dateCols = headers.slice(1);
@@ -103,7 +112,6 @@
             y.push(+val);
           }
         });
-
         if (x.length === 0) {
           document.getElementById("msg").innerText = "No values found for " + homeId;
           return;
@@ -121,7 +129,7 @@
         const maxValAvg = avgY.length > 0 ? Math.max(...avgY) : 0;
         const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
 
-        Plotly.newPlot("chart", [
+        safePlot("chart", [
           {
             x: x,
             y: y,
@@ -142,11 +150,6 @@
           xaxis: { title: "Month", type: "date" },
           yaxis: { title: "kWh", range: [0, yMax] },
         });
-        
-        document.getElementById("title").innerText = "Energy Usage Analysis for Home " + homeId,
-          document.getElementById("msg").innerText = "";
-
-
       }
 
       // Initial draw
@@ -218,13 +221,13 @@ Promise.all([
     const maxValS = d3.max(summerData, d => d.val);
     const maxValW = d3.max(winterData, d => d.val);
 
-    Plotly.newPlot("summerChart", makeTraces(summerData), {
+    safewPlot("summerChart", makeTraces(summerData), {
       barmode: "group",
       title: "Summer Energy Usage Distribution by Category (Home vs. Community Average)",
       yaxis: {title: "% of total household energy use", range: [0, maxValS * 1.2]}
     });
 
-    Plotly.newPlot("winterChart", makeTraces(winterData), {
+    safenewPlot("winterChart", makeTraces(winterData), {
       barmode: "group",
       title: "Winter Energy Usage Distribution by Category (Home vs. Community Average)",
       yaxis: {title: "% of total household energy use", range: [0, maxValW * 1.2]}
