@@ -195,8 +195,8 @@ Promise.all([
     const sRow = summer.find(d => d.dataid === homeId);
     const wRow = winter.find(d => d.dataid === homeId);
 
-    const summerData = prepPercent(sRow, sAvg, "Summer (Home)", "Summer (Avg)");
-    const winterData = prepPercent(wRow, wAvg, "Winter (Home)", "Winter (Avg)");
+    const summerData = prepPercent(sRow, sAvg, "Home Average)", "Community Average)");
+    const winterData = prepPercent(wRow, wAvg, "Home Average)", "Community Average)");
 
     function makeTraces(data) {
       const types = [...new Set(data.map(d => d.type))];
