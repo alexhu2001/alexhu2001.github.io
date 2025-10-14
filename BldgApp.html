@@ -218,8 +218,8 @@ function drawSeasonCharts(homeId) {
   const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
   const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
 
-  const summerData = sRow ? prepPercent(sRow, sAvg, "Home", "Community") : [];
-  const winterData = wRow ? prepPercent(wRow, wAvg, "Home", "Community") : [];
+  const summerData = sRow ? prepPercent(sRow, sAvg, "Home" + homeId, "Community Average") : [];
+  const winterData = wRow ? prepPercent(wRow, wAvg, "Home" + homeId, "Community Average") : [];
 
   function makeTraces(data) {
     const types = [...new Set(data.map(d => d.type))];
