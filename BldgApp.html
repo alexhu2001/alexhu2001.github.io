@@ -202,8 +202,6 @@ Promise.all([
 
   function drawSeasonCharts(homeId) {
     document.getElementById("msg").innerText = "";
-    document.getElementById("summerChart").style.display = "none";
-    document.getElementById("winterChart").style.display = "none";
 
 const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
 const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
