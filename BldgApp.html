@@ -32,7 +32,7 @@
   <div id="msg" style="color:red;"></div>
   <!-- ===== Winter/Summer Comparison Section START ===== -->
   <hr>
-  <h2>Seasonal Usage by Category (%)</h2>
+  <h2>Seasonal Energy Usage Breakdown by Category (%)</h2>
   <div id="summerChart"></div>
   <div id="winterChart"></div>
   <!-- ===== Winter/Summer Comparison Section END ===== -->
@@ -213,14 +213,14 @@ Promise.all([
 
     Plotly.newPlot("summerChart", makeTraces(summerData), {
       barmode: "group",
-      title: "Summer by Category (%)",
-      yaxis: {title: "% of total", range: [0, maxValS * 1.2]}
+      title: "Summer Energy Usage Distribution by Category (Home vs. Community Average)",
+      yaxis: {title: "% of total household energy use", range: [0, maxValS * 1.2]}
     });
 
     Plotly.newPlot("winterChart", makeTraces(winterData), {
       barmode: "group",
-      title: "Winter by Category (%)",
-      yaxis: {title: "% of total", range: [0, maxValW * 1.2]}
+      title: "Winter Energy Usage Distribution by Category (Home vs. Community Average)",
+      yaxis: {title: "% of total household energy use", range: [0, maxValW * 1.2]}
     });
   }
 
