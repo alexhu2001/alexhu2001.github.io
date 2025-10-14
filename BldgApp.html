@@ -208,7 +208,7 @@ Promise.all([
           name: t,
           type: "bar",
           text: filtered.map(d => d.val.toFixed(1) + "%"),  // show % with 1 decimal
-          textposition: "auto"  // places labels inside or above bars automatically
+          textposition: "outside"  // places labels above bars
           };
       });
     }
