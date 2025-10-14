@@ -188,6 +188,9 @@ Promise.all([
       .filter(k => k !== "dataid" && +row[k] > 0)
       .map(k => ({cat: k, val: +row[k]}));
     if (!row) return [];
+      const entries = Object.keys(row)
+    .filter(k => k !== "dataid" && +row[k] > 0)
+    .map(k => ({cat: k, val: +row[k]}));
     const total = d3.sum(entries, d => d.val);
     const homeData = entries.map(d => ({cat: d.cat, val: d.val / total * 100, type: labelHome}));
 
