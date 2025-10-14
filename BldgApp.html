@@ -100,7 +100,7 @@ function safePlot(divId, data, layout) {
       selectEl.value = bldg;
 
       function drawChart(homeId) {
-        const row = data.find(d => matchId(d.dataid, homeId));
+        const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
         if (!row) {
           document.getElementById("msg").innerText = "No data for " + homeId;
           return;
@@ -187,6 +187,7 @@ Promise.all([
     const entries = Object.keys(row)
       .filter(k => k !== "dataid" && +row[k] > 0)
       .map(k => ({cat: k, val: +row[k]}));
+    if (!row) return [];
     const total = d3.sum(entries, d => d.val);
     const homeData = entries.map(d => ({cat: d.cat, val: d.val / total * 100, type: labelHome}));
 
@@ -201,9 +202,8 @@ Promise.all([
 
   function drawSeasonCharts(homeId) {
     document.getElementById("msg").innerText = "";
-    const sRow = summer.find(d => d.dataid === homeId);
-    const wRow = winter.find(d => d.dataid === homeId);
-
+const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
+const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
 
     const summerData = prepPercent(sRow, sAvg, "Home Average", "Community Average");
     const winterData = prepPercent(wRow, wAvg, "Home Average", "Community Average");
