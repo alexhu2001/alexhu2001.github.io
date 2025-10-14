@@ -65,7 +65,6 @@ function safePlot(divId, data, layout) {
   if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
     div.style.display = "none";   // hide if no data
   } else {
-  
     Plotly.newPlot(divId, data, layout, {responsive:true});
   }
 }
@@ -101,7 +100,7 @@ function safePlot(divId, data, layout) {
       selectEl.value = bldg;
 
       function drawChart(homeId) {
-        const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
+        const row = data.find(d => matchId(d.dataid, homeId));
         if (!row) {
           document.getElementById("msg").innerText = "No data for " + homeId;
           return;
