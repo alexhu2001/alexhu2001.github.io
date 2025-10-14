@@ -229,13 +229,13 @@ Promise.all([
 
     safePlot("summerChart", makeTraces(summerData), {
       barmode: "group",
-      title: "Summer Energy Usage Distribution by Category (Home vs. Community Average)",
+      title: "Summer Energy Usage Distribution by Category (Home vs. Community Average)" + homeId,
       yaxis: {title: "% of total household energy use", range: [0, maxValS * 1.2]}
     });
 
     safePlot("winterChart", makeTraces(winterData), {
       barmode: "group",
-      title: "Winter Energy Usage Distribution by Category (Home vs. Community Average)",
+      title: "Winter Energy Usage Distribution by Category (Home vs. Community Average)" + homeId,
       yaxis: {title: "% of total household energy use", range: [0, maxValW * 1.2]}
     });
   }
