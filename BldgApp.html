@@ -241,7 +241,7 @@ function drawSeasonCharts(homeId) {
 
   safePlot("summerChart", makeTraces(summerData), {
     barmode: "group",
-    title: "Summer (May-July) Energy Usage Distribution by Category for Home " + homeId,
+    title: "Summer (June-Aug) Energy Usage Distribution by Category for Home " + homeId,
     yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] },
     xaxis: { title: "Category" }
   });
