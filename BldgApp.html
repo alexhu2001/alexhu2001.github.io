@@ -263,27 +263,48 @@ function drawDayOfWeekChart(homeId) {
       return;
     }
 
+    // Filter for the selected home
     const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
 
+    // Map day numbers to names
     const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     const days = filtered.map(r => dayNames[+r.day_of_week]);
     const values = filtered.map(r => +r.grid);
 
-    const trace = {
+    // --- Community average across all homes ---
+    const grouped = d3.nest()
+      .key(d => +d.day_of_week)
+      .rollup(v => d3.mean(v, d => +d.grid))
+      .entries(rows);
+
+    const avgDays = grouped.map(d => dayNames[d.key]);
+    const avgValues = grouped.map(d => d.value);
+
+    // --- Traces ---
+    const traceHome = {
       x: days,
       y: values,
       type: "bar",
       marker: { color: "#2ca02c" },
-      name: "Grid Energy Use"
+      name: "Home " + homeId
+    };
+
+    const traceAvg = {
+      x: avgDays,
+      y: avgValues,
+      type: "bar",
+      marker: { color: "orange" },
+      name: "Community Average"
     };
 
     const layout = {
+      barmode: "group",
       title: "Average Daily Energy Use by Day of Week for Home " + homeId,
       xaxis: { title: "Day of Week" },
       yaxis: { title: "Energy Use (kWh)" }
     };
 
-    safePlot("dayOfWeekChart", [trace], layout);
+    safePlot("dayOfWeekChart", [traceHome, traceAvg], layout);
   });
 }
 
