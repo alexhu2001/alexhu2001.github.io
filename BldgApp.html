@@ -218,34 +218,43 @@ Promise.all([
   }
 
   // Keep hourly at top-level inside this Promise block
-  function drawHourlyChart(homeId) {
-    Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
-      if (err) {
-        console.error("Error loading HourlyEnergy.csv:", err);
-        return;
+function drawHourlyChart(homeId) {
+  Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
+    if (err) {
+      console.error("Error loading HourlyEnergy.csv:", err);
+      return;
+    }
+
+    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
+    const hours = filtered.map(r => +r.hour);
+    const values = filtered.map(r => +r.grid);
+
+    const trace = {
+      x: hours,
+      y: values,
+      type: "scatter",
+      mode: "lines+markers",
+      line: { color: "#1f77b4", width: 2 },
+      marker: { size: 6 },
+      name: "Grid Energy Use"
+    };
+
+    const layout = {
+      title: "Hourly Energy Use for Home " + homeId,
+      xaxis: {
+        title: "Hour of Day",
+        tickmode: "linear",
+        dtick: 1,
+        range: [0, 23]
+      },
+      yaxis: {
+        title: "Energy Use (kWh)"
       }
-      const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
-      const hours = filtered.map(r => +r.hour);
-      const values = filtered.map(r => +r.grid);
+    };
 
-      const trace = {
-        x: hours,
-        y: values,
-        type: "bar",
-        marker: { color: "#1f77b4" },
-        name: "Grid Energy Use"
-      };
-
-      const layout = {
-        barmode: "group",
-        title: "Hourly Energy Use for Home " + homeId,
-        xaxis: { title: "Hour of Day", tickmode: "linear", dtick: 1 },
-        yaxis: { title: "Energy Use (kWh)" }
-      };
-
-      safePlot("hourlyChart", [trace], layout);
-    });
-  }
+    safePlot("hourlyChart", [trace], layout);
+  });
+}
 
   // The ONLY seasonal function — do not redefine it later
   function drawSeasonCharts(homeId) {
