@@ -255,6 +255,37 @@ function drawHourlyChart(homeId) {
     safePlot("hourlyChart", [trace], layout);
   });
 }
+// ===== Day of Week chart =====
+function drawDayOfWeekChart(homeId) {
+  Plotly.d3.csv("DayOfWeek.csv", function(err, rows) {
+    if (err) {
+      console.error("Error loading DayOfWeek.csv:", err);
+      return;
+    }
+
+    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
+
+    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const days = filtered.map(r => dayNames[+r.day_of_week]);
+    const values = filtered.map(r => +r.grid);
+
+    const trace = {
+      x: days,
+      y: values,
+      type: "bar",
+      marker: { color: "#2ca02c" },
+      name: "Grid Energy Use"
+    };
+
+    const layout = {
+      title: "Average Daily Energy Use by Day of Week for Home " + homeId,
+      xaxis: { title: "Day of Week" },
+      yaxis: { title: "Energy Use (kWh)" }
+    };
+
+    safePlot("dayOfWeekChart", [trace], layout);
+  });
+}
 
   // The ONLY seasonal function — do not redefine it later
   function drawSeasonCharts(homeId) {
@@ -285,15 +316,18 @@ function drawHourlyChart(homeId) {
   }
 
   // Hookups
-  document.getElementById("homeSelect").addEventListener("change", e => {
-    drawSeasonCharts(e.target.value);
-    drawHourlyChart(e.target.value);
-  });
+document.getElementById("homeSelect").addEventListener("change", e => {
+  drawSeasonCharts(e.target.value);
+  drawHourlyChart(e.target.value);
+  drawDayOfWeekChart(e.target.value);
+});
 
-  if (data.find(d => d.dataid === bldg)) {
-    drawSeasonCharts(bldg);
-    drawHourlyChart(bldg);
-  }
+if (data.find(d => d.dataid === bldg)) {
+  drawSeasonCharts(bldg);
+  drawHourlyChart(bldg);
+  drawDayOfWeekChart(bldg);
+}
+
 }).catch(err => {
   document.getElementById("msg").innerText = "Error loading CSV: " + err;
   console.error(err);
