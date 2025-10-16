@@ -238,7 +238,7 @@ function drawSeasonCharts(homeId) {
     });
   }
 //Hourly energy use 24 hr
-  function drawHourlyChart(homeId) {
+function drawHourlyChart(homeId) {
   Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
     if (err) {
       console.error("Error loading HourlyEnergy.csv:", err);
