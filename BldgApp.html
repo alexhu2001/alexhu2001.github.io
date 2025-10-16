@@ -173,7 +173,6 @@ Promise.all([
   d3.csv("Category_SummerDailyAvg.csv"),
   d3.csv("Category_WinterDailyAvg.csv")
 ]).then(([summer, winter]) => {
-
   function avgRow(data) {
     const result = {};
     data.columns.slice(1).forEach(col => {
@@ -182,46 +181,26 @@ Promise.all([
     });
     return result;
   }
+
   const sAvg = avgRow(summer);
   const wAvg = avgRow(winter);
 
-function prepPercent(row, avg, labelHome, labelAvg) {
-  if (!row) return [];   // guard against missing row
+  function prepPercent(row, avg, labelHome, labelAvg) {
+    if (!row) return [];
+    const entries = Object.keys(row)
+      .filter(k => k !== "dataid" && +row[k] > 0)
+      .map(k => ({ cat: k, val: +row[k] }));
+    const total = d3.sum(entries, d => d.val);
+    const homeData = entries.map(d => ({ cat: d.cat, val: d.val / total * 100, type: labelHome }));
 
-  const entries = Object.keys(row)
-    .filter(k => k !== "dataid" && +row[k] > 0)
-    .map(k => ({ cat: k, val: +row[k] }));
+    const avgEntries = Object.keys(avg)
+      .filter(k => avg[k] > 0)
+      .map(k => ({ cat: k, val: avg[k] }));
+    const avgTotal = d3.sum(avgEntries, d => d.val);
+    const avgData = avgEntries.map(d => ({ cat: d.cat, val: d.val / avgTotal * 100, type: labelAvg }));
 
-  const total = d3.sum(entries, d => d.val);
-  const homeData = entries.map(d => ({
-    cat: d.cat,
-    val: d.val / total * 100,
-    type: labelHome
-  }));
-
-  const avgEntries = Object.keys(avg)
-    .filter(k => avg[k] > 0)
-    .map(k => ({ cat: k, val: avg[k] }));
-
-  const avgTotal = d3.sum(avgEntries, d => d.val);
-  const avgData = avgEntries.map(d => ({
-    cat: d.cat,
-    val: d.val / avgTotal * 100,
-    type: labelAvg
-  }));
-
-  return [...homeData, ...avgData];
-}
-
-function drawSeasonCharts(homeId) {
-  document.getElementById("msg").innerText = "";
-
-  // Always coerce IDs to string for reliable matching
-  const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
-  const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
-
-  const summerData = sRow ? prepPercent(sRow, sAvg, "Home " + homeId, "Community Average") : [];
-  const winterData = wRow ? prepPercent(wRow, wAvg, "Home " + homeId, "Community Average") : [];
+    return [...homeData, ...avgData];
+  }
 
   function makeTraces(data) {
     const types = [...new Set(data.map(d => d.type))];
@@ -237,78 +216,79 @@ function drawSeasonCharts(homeId) {
       };
     });
   }
-// ===== Hourly energy use 24 hr (top-level) =====
-function drawHourlyChart(homeId) {
-  Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
-    if (err) {
-      console.error("Error loading HourlyEnergy.csv:", err);
-      return;
-    }
 
-    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
-    const hours = filtered.map(r => +r.hour);
-    const values = filtered.map(r => +r.grid);
+  // Keep hourly at top-level inside this Promise block
+  function drawHourlyChart(homeId) {
+    Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
+      if (err) {
+        console.error("Error loading HourlyEnergy.csv:", err);
+        return;
+      }
+      const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
+      const hours = filtered.map(r => +r.hour);
+      const values = filtered.map(r => +r.grid);
 
-    const trace = {
-      x: hours,
-      y: values,
-      type: "bar",
-      marker: { color: "#1f77b4" },
-      name: "Grid Energy Use"
-    };
+      const trace = {
+        x: hours,
+        y: values,
+        type: "bar",
+        marker: { color: "#1f77b4" },
+        name: "Grid Energy Use"
+      };
 
-    const layout = {
+      const layout = {
+        barmode: "group",
+        title: "Hourly Energy Use for Home " + homeId,
+        xaxis: { title: "Hour of Day", tickmode: "linear", dtick: 1 },
+        yaxis: { title: "Energy Use (kWh)" }
+      };
+
+      safePlot("hourlyChart", [trace], layout);
+    });
+  }
+
+  // The ONLY seasonal function — do not redefine it later
+  function drawSeasonCharts(homeId) {
+    document.getElementById("msg").innerText = "";
+
+    const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
+    const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
+
+    const summerData = sRow ? prepPercent(sRow, sAvg, "Home " + homeId, "Community Average") : [];
+    const winterData = wRow ? prepPercent(wRow, wAvg, "Home " + homeId, "Community Average") : [];
+
+    const maxValS = d3.max(summerData, d => d.val) || 0;
+    const maxValW = d3.max(winterData, d => d.val) || 0;
+
+    safePlot("summerChart", makeTraces(summerData), {
       barmode: "group",
-      title: "Hourly Energy Use for Home " + homeId,
-      xaxis: { title: "Hour of Day", tickmode: "linear", dtick: 1 },
-      yaxis: { title: "Energy Use (kWh)" }
-    };
+      title: "Summer (June-Aug) Energy Usage Distribution by Category for Home " + homeId,
+      yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] },
+      xaxis: { title: "Category" }
+    });
 
-    safePlot("hourlyChart", [trace], layout);
-  });
-}
+    safePlot("winterChart", makeTraces(winterData), {
+      barmode: "group",
+      title: "Winter (Dec-Feb) Energy Usage Distribution by Category for Home " + homeId,
+      yaxis: { title: "% of total household energy use", range: [0, maxValW * 1.2] },
+      xaxis: { title: "Category" }
+    });
+  }
 
-// ===== Seasonal charts (unchanged signature) =====
-function drawSeasonCharts(homeId) {
-  document.getElementById("msg").innerText = "";
-
-  // existing seasonal logic...
-  // safePlot("summerChart", ...);
-  // safePlot("winterChart", ...);
-}
-
-  const maxValS = d3.max(summerData, d => d.val) || 0;
-  const maxValW = d3.max(winterData, d => d.val) || 0;
-
-  safePlot("summerChart", makeTraces(summerData), {
-    barmode: "group",
-    title: "Summer (June-Aug) Energy Usage Distribution by Category for Home " + homeId,
-    yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] },
-    xaxis: { title: "Category" }
-  });
-
-  safePlot("winterChart", makeTraces(winterData), {
-    barmode: "group",
-    title: "Winter (Dec-Feb) Energy Usage Distribution by Category for Home " + homeId,
-    yaxis: { title: "% of total household energy use", range: [0, maxValW * 1.2] },
-    xaxis: { title: "Category" }
-  });
-}
-  // 每次切换 Monthly 的 homeSelect 时，自动更新冬夏图
+  // Hookups
   document.getElementById("homeSelect").addEventListener("change", e => {
     drawSeasonCharts(e.target.value);
     drawHourlyChart(e.target.value);
   });
 
-// 初始绘制
-if (data.find(d => d.dataid === bldg)) {
-  drawSeasonCharts(bldg);
-  drawHourlyChart(bldg);
-}
+  if (data.find(d => d.dataid === bldg)) {
+    drawSeasonCharts(bldg);
+    drawHourlyChart(bldg);
+  }
+}).catch(err => {
+  document.getElementById("msg").innerText = "Error loading CSV: " + err;
+  console.error(err);
 });
-
-<!-- ===== Winter/Summer Comparison Code END ===== -->
-
     }).catch(err => {
       document.getElementById("msg").innerText = "Error loading CSV: " + err;
       console.error(err);
