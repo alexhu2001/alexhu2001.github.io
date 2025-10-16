@@ -39,7 +39,6 @@
   <hr>
   <h2 id="titleHourly">Hourly Energy Use (24 Hours)</h2>
   <div id="hourlyChart"></div>
-  </div>
   
 <!-- Info tab -->
 <div id="Info" class="tabcontent">
@@ -238,7 +237,7 @@ function drawSeasonCharts(homeId) {
       };
     });
   }
-  #Hourly energy use 24 hr
+//Hourly energy use 24 hr
   function drawHourlyChart(homeId) {
   Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
     if (err) {
