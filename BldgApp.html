@@ -296,6 +296,7 @@ function drawSeasonCharts(homeId) {
 // 初始绘制
 if (data.find(d => d.dataid === bldg)) {
   drawSeasonCharts(bldg);
+  drawHourlyChart(bldg);
 }
 });
 
