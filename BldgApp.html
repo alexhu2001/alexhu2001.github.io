@@ -244,7 +244,7 @@ function drawHourlyChart(homeId) {
       console.error("Error loading HourlyEnergy.csv:", err);
       return;
     }
-    const filtered = rows.filter(r => String(r.dataid).trim() === String(homeId).trim());
+    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
     const hours = filtered.map(r => +r.hour);
     const values = filtered.map(r => +r.grid);
     const trace = {
