@@ -237,16 +237,18 @@ function drawSeasonCharts(homeId) {
       };
     });
   }
-//Hourly energy use 24 hr
+// ===== Hourly energy use 24 hr (top-level) =====
 function drawHourlyChart(homeId) {
   Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
     if (err) {
       console.error("Error loading HourlyEnergy.csv:", err);
       return;
     }
+
     const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
     const hours = filtered.map(r => +r.hour);
     const values = filtered.map(r => +r.grid);
+
     const trace = {
       x: hours,
       y: values,
@@ -254,22 +256,27 @@ function drawHourlyChart(homeId) {
       marker: { color: "#1f77b4" },
       name: "Grid Energy Use"
     };
+
     const layout = {
       barmode: "group",
       title: "Hourly Energy Use for Home " + homeId,
-      xaxis: {
-        title: "Hour of Day",
-        tickmode: "linear",
-        dtick: 1
-      },
-      yaxis: {
-        title: "Energy Use (kWh)"
-      }
+      xaxis: { title: "Hour of Day", tickmode: "linear", dtick: 1 },
+      yaxis: { title: "Energy Use (kWh)" }
     };
+
     safePlot("hourlyChart", [trace], layout);
   });
 }
-  
+
+// ===== Seasonal charts (unchanged signature) =====
+function drawSeasonCharts(homeId) {
+  document.getElementById("msg").innerText = "";
+
+  // existing seasonal logic...
+  // safePlot("summerChart", ...);
+  // safePlot("winterChart", ...);
+}
+
   const maxValS = d3.max(summerData, d => d.val) || 0;
   const maxValW = d3.max(winterData, d => d.val) || 0;
 
