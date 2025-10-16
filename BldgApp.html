@@ -43,7 +43,6 @@
   <h2 id="titleDayOfWeek">Average Energy Use by Day of Week</h2>
   <div id="dayOfWeekChart"></div>
 
-  
 <!-- Info tab -->
 <div id="Info" class="tabcontent">
   <h2>About this Dashboard</h2>
@@ -267,7 +266,7 @@ function drawDayOfWeekChart(homeId) {
     const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
 
     // Map day numbers to names
-    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
     const days = filtered.map(r => dayNames[+r.day_of_week]);
     const values = filtered.map(r => +r.grid);
 
