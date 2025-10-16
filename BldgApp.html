@@ -39,6 +39,10 @@
   <hr>
   <h2 id="titleHourly">Hourly Energy Use (24 Hours)</h2>
   <div id="hourlyChart"></div>
+  <hr>
+  <h2 id="titleDayOfWeek">Average Energy Use by Day of Week</h2>
+  <div id="dayOfWeekChart"></div>
+
   
 <!-- Info tab -->
 <div id="Info" class="tabcontent">
@@ -224,11 +228,9 @@ function drawHourlyChart(homeId) {
       console.error("Error loading HourlyEnergy.csv:", err);
       return;
     }
-
     const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
     const hours = filtered.map(r => +r.hour);
     const values = filtered.map(r => +r.grid);
-
     const trace = {
       x: hours,
       y: values,
@@ -238,7 +240,6 @@ function drawHourlyChart(homeId) {
       marker: { size: 6 },
       name: "Grid Energy Use"
     };
-
     const layout = {
       title: "Hourly Energy Use for Home " + homeId,
       xaxis: {
@@ -251,7 +252,6 @@ function drawHourlyChart(homeId) {
         title: "Energy Use (kWh)"
       }
     };
-
     safePlot("hourlyChart", [trace], layout);
   });
 }
