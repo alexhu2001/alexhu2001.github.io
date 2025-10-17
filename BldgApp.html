@@ -281,6 +281,8 @@ function drawDayOfWeekChart(homeId) {
       x: days,
       y: values,
       type: "bar",
+      text: values.map(v => v.toFixed(1) + " kWh"), // labels above bars
+      textposition: "outside",
       marker: { color: "#2ca02c" },
       name: "Home " + homeId
     };
@@ -288,6 +290,8 @@ function drawDayOfWeekChart(homeId) {
       x: avgDays,
       y: avgValues,
       type: "bar",
+      text: avgValues.map(v => v.toFixed(1) + " kWh"),
+      textposition: "outside",
       marker: { color: "orange" },
       name: "Community Average"
     };
