@@ -230,15 +230,17 @@ function drawHourlyChart(homeId) {
     const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
     const hours = filtered.map(r => +r.hour);
     const values = filtered.map(r => +r.grid);
-    const trace = {
-      x: hours,
-      y: values,
-      type: "scatter",
-      mode: "lines+markers",
-      line: { color: "#1f77b4", width: 2 },
-      marker: { size: 6 },
-      name: "Grid Energy Use"
-    };
+const trace = {
+  x: hours,
+  y: values,
+  type: "scatter",
+  mode: "lines+markers+text",   // add text labels
+  text: values.map(v => v.toFixed(1) + " kWh"), // label each point
+  textposition: "top center",
+  line: { color: "#1f77b4", width: 2 },
+  marker: { size: 6 },
+  name: "Grid Energy Use"
+};
     const layout = {
       title: "Hourly Energy Use for Home " + homeId,
       xaxis: {
@@ -261,24 +263,19 @@ function drawDayOfWeekChart(homeId) {
       console.error("Error loading DayOfWeek.csv:", err);
       return;
     }
-
     // Filter for the selected home
     const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
-
     // Map day numbers to names
     const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
     const days = filtered.map(r => dayNames[+r.day_of_week]);
     const values = filtered.map(r => +r.grid);
-
     // --- Community average across all homes ---
     const grouped = d3.nest()
       .key(d => +d.day_of_week)
       .rollup(v => d3.mean(v, d => +d.grid))
       .entries(rows);
-
     const avgDays = grouped.map(d => dayNames[d.key]);
     const avgValues = grouped.map(d => d.value);
-
     // --- Traces ---
     const traceHome = {
       x: days,
@@ -287,7 +284,6 @@ function drawDayOfWeekChart(homeId) {
       marker: { color: "#2ca02c" },
       name: "Home " + homeId
     };
-
     const traceAvg = {
       x: avgDays,
       y: avgValues,
