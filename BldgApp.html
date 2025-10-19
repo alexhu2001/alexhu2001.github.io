@@ -359,7 +359,6 @@ function openTab(evt, tabName) {
 }
 // Open default tab
 document.getElementById("defaultOpen").click();
-
 // ===== Forecast charts =====
 function loadForecast() {
   fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,apparent_temperature,cloudcover,shortwave_radiation&timezone=America/New_York")
@@ -370,68 +369,63 @@ function loadForecast() {
       const appTemp = data.hourly.apparent_temperature;
       const cloud = data.hourly.cloudcover;
       const solar = data.hourly.shortwave_radiation;
-// --- Temperature vs Apparent Temperature with Comfort Zone ---
-const traceTemp = {
-  x: times, y: temp, type: "scatter", mode: "lines",
-  name: "Air Temp (°C)", line: { color: "red" }
-};
-const traceApp = {
-  x: times, y: appTemp, type: "scatter", mode: "lines",
-  name: "Apparent Temp (°C)", line: { color: "orange", dash: "dot" }
-};
 
-// Comfort zone shading (20–26 °C ≈ 68–79 °F)
-const comfortZone = {
-  type: "rect",
-  xref: "x", yref: "y",
-  x0: times[0], x1: times[times.length - 1],
-  y0: 20, y1: 26,
-  fillcolor: "rgba(0,200,0,0.1)",
-  line: { width: 0 },
-  layer: "below"
-};
+      // --- Temperature vs Apparent Temperature with Comfort Zone ---
+      const traceTemp = {
+        x: times, y: temp, type: "scatter", mode: "lines",
+        name: "Air Temp (°C)", line: { color: "red" }
+      };
+      const traceApp = {
+        x: times, y: appTemp, type: "scatter", mode: "lines",
+        name: "Apparent Temp (°C)", line: { color: "orange", dash: "dot" }
+      };
+      const comfortZone = {
+        type: "rect", xref: "x", yref: "y",
+        x0: times[0], x1: times[times.length - 1],
+        y0: 20, y1: 26,
+        fillcolor: "rgba(0,200,0,0.1)", line: { width: 0 }, layer: "below"
+      };
+      Plotly.newPlot("tempChart", [traceTemp, traceApp], {
+        title: "Hourly Temperature vs. Apparent Temperature",
+        xaxis: { title: "Time" },
+        yaxis: { title: "°C" },
+        hovermode: "x unified",
+        shapes: [comfortZone],
+        annotations: [{
+          xref: "paper", yref: "y", x: 1.02, y: 23,
+          text: "Comfort Zone (68–79°F)", showarrow: false,
+          font: { color: "green" }
+        }]
+      });
 
-Plotly.newPlot("tempChart", [traceTemp, traceApp], {
-  title: "Hourly Temperature vs. Apparent Temperature",
-  xaxis: { title: "Time" },
-  yaxis: { title: "°C" },
-  hovermode: "x unified",
-  shapes: [comfortZone],
-  annotations: [{
-    xref: "paper", yref: "y",
-    x: 1.02, y: 23,
-    text: "Comfort Zone (68–79°F)",
-    showarrow: false,
-    font: { color: "green" }
-  }]
-});
+      // --- Cloud Cover as Area Chart ---
+      const traceCloud = {
+        x: times, y: cloud, type: "scatter", mode: "lines",
+        name: "Cloud Cover (%)", line: { color: "gray" },
+        fill: "tozeroy", fillcolor: "rgba(128,128,128,0.3)"
+      };
+      Plotly.newPlot("cloudChart", [traceCloud], {
+        title: "Hourly Cloud Cover",
+        xaxis: { title: "Time" },
+        yaxis: { title: "%" },
+        hovermode: "x unified"
+      });
 
-// --- Cloud Cover as Area Chart ---
-const traceCloud = {
-  x: times, y: cloud, type: "scatter", mode: "lines",
-  name: "Cloud Cover (%)", line: { color: "gray" },
-  fill: "tozeroy", fillcolor: "rgba(128,128,128,0.3)"
-};
-Plotly.newPlot("cloudChart", [traceCloud], {
-  title: "Hourly Cloud Cover",
-  xaxis: { title: "Time" },
-  yaxis: { title: "%" },
-  hovermode: "x unified"
-});
-
-// --- Solar Radiation with Filled Curve ---
-const traceSolar = {
-  x: times, y: solar, type: "scatter", mode: "lines",
-  name: "Solar Radiation (W/m²)", line: { color: "gold" },
-  fill: "tozeroy", fillcolor: "rgba(255,215,0,0.3)"
-};
-Plotly.newPlot("solarChart", [traceSolar], {
-  title: "Hourly Solar Radiation",
-  xaxis: { title: "Time" },
-  yaxis: { title: "W/m²" },
-  hovermode: "x unified"
-});
+      // --- Solar Radiation with Filled Curve ---
+      const traceSolar = {
+        x: times, y: solar, type: "scatter", mode: "lines",
+        name: "Solar Radiation (W/m²)", line: { color: "gold" },
+        fill: "tozeroy", fillcolor: "rgba(255,215,0,0.3)"
+      };
+      Plotly.newPlot("solarChart", [traceSolar], {
+        title: "Hourly Solar Radiation",
+        xaxis: { title: "Time" },
+        yaxis: { title: "W/m²" },
+        hovermode: "x unified"
+      });
+    }); // <-- closes the .then chain properly
 }
+
 // Hook forecast loader to Forecast tab button
 document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
 </script>
