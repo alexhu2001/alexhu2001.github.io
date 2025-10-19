@@ -59,7 +59,6 @@
   <script>
     const params = new URLSearchParams(window.location.search);
     let bldg = params.get("bldg") || "7352";
-
     function parseHeaderDate(s) {
       const parts = s.split("/");
       if (parts.length === 3) {
@@ -402,18 +401,6 @@ Plotly.newPlot("solarChart", [traceSolar], {
   yaxis: { title: "W/m²" },
   hovermode: "x unified"
 });
-      // --- Solar Radiation ---
-      const traceSolar = {
-        x: times, y: solar, type: "scatter", mode: "lines",
-        name: "Solar Radiation (W/m²)", line: { color: "gold" }
-      };
-      Plotly.newPlot("solarChart", [traceSolar], {
-        title: "Hourly Solar Radiation Forecast",
-        xaxis: { title: "Time" },
-        yaxis: { title: "W/m²" },
-        hovermode: "x unified"
-      });
-    });
 }
 // Hook forecast loader to Forecast tab button
 document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
