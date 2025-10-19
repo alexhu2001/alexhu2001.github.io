@@ -21,6 +21,7 @@
 <div class="tab">
   <button class="tablinks" onclick="openTab(event, 'Info')">Info</button>
   <button class="tablinks" onclick="openTab(event, 'Dashboard')" id="defaultOpen">Energy Usage</button>
+  <button class="tablinks" onclick="openTab(event, 'Forecast')">Weather Forecast</button>
 </div>
 
 <!-- Dashboard tab -->
@@ -47,6 +48,11 @@
 <div id="Info" class="tabcontent">
   <h2>About this Dashboard</h2>
   <p>This tool shows monthly electricity consumption for selected homes, compared with the community average.</p>
+</div>
+<!-- Forecast tab -->
+<div id="Forecast" class="tabcontent">
+  <h2>7-Day Weather Forecast</h2>
+  <div id="forecastChart"></div>
 </div>
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -366,5 +372,26 @@ function openTab(evt, tabName) {
 // Open default tab
 document.getElementById("defaultOpen").click();
   </script>
+<script>
+// Simple forecast chart using Open-Meteo
+function loadForecast() {
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&daily=temperature_2m_max,temperature_2m_min&timezone=America/New_York")
+    .then(res => res.json())
+    .then(data => {
+      const dates = data.daily.time;
+      const tmax = data.daily.temperature_2m_max;
+      const tmin = data.daily.temperature_2m_min;
+      const traceMax = { x: dates, y: tmax, type: "scatter", name: "Max Temp" };
+      const traceMin = { x: dates, y: tmin, type: "scatter", name: "Min Temp" };
+      Plotly.newPlot("forecastChart", [traceMax, traceMin], {
+        title: "Daily Temperatures (°C)",
+        xaxis: { title: "Date" },
+        yaxis: { title: "Temperature (°C)" }
+      });
+    });
+}
+// Optional: load forecast immediately when Forecast tab is opened
+document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
+</script>
 </body>
 </html>
