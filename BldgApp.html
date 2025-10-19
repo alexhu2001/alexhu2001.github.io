@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <style>
   .tab { overflow: hidden; border-bottom: 1px solid #ccc; }
   .tab button { background: none; border: none; padding: 10px 16px; cursor: pointer; }
   .tab button.active { background: #ccc; }
   .tabcontent { display: none; padding: 16px; }
 </style>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Energy Dashboard</title>
@@ -16,14 +14,12 @@
   <script src="https://d3js.org/d3.v5.min.js"></script>
 </head>
 <body>
-
 <!-- Tab buttons -->
 <div class="tab">
   <button class="tablinks" onclick="openTab(event, 'Info')">Info</button>
   <button class="tablinks" onclick="openTab(event, 'Dashboard')" id="defaultOpen">Energy Usage</button>
   <button class="tablinks" onclick="openTab(event, 'Forecast')">Weather Forecast</button>
 </div>
-
 <!-- Dashboard tab -->
 <div id="Dashboard" class="tabcontent">
   <h1 id="title">Energy Usage Analysis</h1>
@@ -308,11 +304,9 @@ function drawDayOfWeekChart(homeId) {
       xaxis: { title: "Day of Week" },
       yaxis: { title: "Energy Use (kWh)" }
     };
-
     safePlot("dayOfWeekChart", [traceHome, traceAvg], layout);
   });
 }
-
   // The ONLY seasonal function — do not redefine it later
   function drawSeasonCharts(homeId) {
     document.getElementById("msg").innerText = "";
@@ -365,7 +359,6 @@ function openTab(evt, tabName) {
 }
 // Open default tab
 document.getElementById("defaultOpen").click();
-  </script>
 <script>
 // ===== Forecast charts =====
 function loadForecast() {
