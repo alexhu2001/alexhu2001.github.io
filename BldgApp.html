@@ -375,19 +375,43 @@ document.getElementById("defaultOpen").click();
 <script>
 // Simple forecast chart using Open-Meteo
 function loadForecast() {
-  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&daily=temperature_2m_max,temperature_2m_min&timezone=America/New_York")
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,relative_humidity_2m&timezone=America/New_York")
     .then(res => res.json())
     .then(data => {
-      const dates = data.daily.time;
-      const tmax = data.daily.temperature_2m_max;
-      const tmin = data.daily.temperature_2m_min;
-      const traceMax = { x: dates, y: tmax, type: "scatter", name: "Max Temp" };
-      const traceMin = { x: dates, y: tmin, type: "scatter", name: "Min Temp" };
-      Plotly.newPlot("forecastChart", [traceMax, traceMin], {
-        title: "Daily Temperatures (°C)",
-        xaxis: { title: "Date" },
-        yaxis: { title: "Temperature (°C)" }
-      });
+      const times = data.hourly.time;
+      const temps = data.hourly.temperature_2m;
+      const rh = data.hourly.relative_humidity_2m;
+      const traceTemp = {
+        x: times,
+        y: temps,
+        type: "scatter",
+        mode: "lines+markers",
+        name: "Temperature (°C)",
+        line: { color: "red" },
+        hovertemplate: "%{x}<br>Temp: %{y} °C<extra></extra>"
+      };
+      const traceRH = {
+        x: times,
+        y: rh,
+        type: "scatter",
+        mode: "lines",
+        name: "Relative Humidity (%)",
+        yaxis: "y2",
+        line: { color: "blue", dash: "dot" },
+        hovertemplate: "%{x}<br>RH: %{y}%<extra></extra>"
+      };
+      const layout = {
+        title: "Hourly Weather Forecast (Next 7 Days)",
+        xaxis: { title: "Time", rangeslider: { visible: true } }, // adds zoom slider
+        yaxis: { title: "Temperature (°C)", side: "left" },
+        yaxis2: {
+          title: "Relative Humidity (%)",
+          overlaying: "y",
+          side: "right"
+        },
+        hovermode: "x unified" // single vertical hover line with all values
+      };
+      Plotly.newPlot("forecastChart", [traceTemp, traceRH], layout);
     });
 }
 // Optional: load forecast immediately when Forecast tab is opened
