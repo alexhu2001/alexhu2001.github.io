@@ -359,6 +359,7 @@ function openTab(evt, tabName) {
 }
 // Open default tab
 document.getElementById("defaultOpen").click();
+
 // ===== Forecast charts =====
 function loadForecast() {
   fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,apparent_temperature,cloudcover,shortwave_radiation&timezone=America/New_York")
@@ -367,32 +368,22 @@ function loadForecast() {
       const times = data.hourly.time;
       const temp = data.hourly.temperature_2m;
       const appTemp = data.hourly.apparent_temperature;
-      const precip = data.hourly.precipitation;
+      const cloud = data.hourly.cloudcover;
       const solar = data.hourly.shortwave_radiation;
-// --- Temperature vs Apparent Temperature ---
-Plotly.newPlot("tempChart", [traceTemp, traceApp], { ... });
-// --- Cloud Cover ---
-const traceCloud = {
-  x: times, y: data.hourly.cloudcover, type: "scatter", mode: "lines",
-  name: "Cloud Cover (%)", line: { color: "gray" }
-};
-Plotly.newPlot("cloudChart", [traceCloud], {
-  title: "Hourly Cloud Cover",
-  xaxis: { title: "Time" },
-  yaxis: { title: "%" },
-  hovermode: "x unified"
-});
-// --- Solar Radiation ---
-const traceSolar = {
-  x: times, y: data.hourly.shortwave_radiation, type: "scatter", mode: "lines",
-  name: "Solar Radiation (W/m²)", line: { color: "gold" }
-};
-Plotly.newPlot("solarChart", [traceSolar], {
-  title: "Hourly Solar Radiation",
-  xaxis: { title: "Time" },
-  yaxis: { title: "W/m²" },
-  hovermode: "x unified"
-});
+
+      // --- Temperature vs Apparent Temperature ---
+      const traceTemp = { x: times, y: temp, type: "scatter", mode: "lines", name: "Air Temp (°C)", line: { color: "red" } };
+      const traceApp = { x: times, y: appTemp, type: "scatter", mode: "lines", name: "Apparent Temp (°C)", line: { color: "orange", dash: "dot" } };
+      Plotly.newPlot("tempChart", [traceTemp, traceApp], { title: "Hourly Temperature vs. Apparent Temperature", xaxis: { title: "Time" }, yaxis: { title: "°C" }, hovermode: "x unified" });
+
+      // --- Cloud Cover ---
+      const traceCloud = { x: times, y: cloud, type: "scatter", mode: "lines", name: "Cloud Cover (%)", line: { color: "gray" } };
+      Plotly.newPlot("cloudChart", [traceCloud], { title: "Hourly Cloud Cover", xaxis: { title: "Time" }, yaxis: { title: "%" }, hovermode: "x unified" });
+
+      // --- Solar Radiation ---
+      const traceSolar = { x: times, y: solar, type: "scatter", mode: "lines", name: "Solar Radiation (W/m²)", line: { color: "gold" } };
+      Plotly.newPlot("solarChart", [traceSolar], { title: "Hourly Solar Radiation", xaxis: { title: "Time" }, yaxis: { title: "W/m²" }, hovermode: "x unified" });
+    });
 }
 // Hook forecast loader to Forecast tab button
 document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
