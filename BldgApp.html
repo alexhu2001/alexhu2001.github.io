@@ -52,7 +52,9 @@
 <!-- Forecast tab -->
 <div id="Forecast" class="tabcontent">
   <h2>7-Day Weather Forecast</h2>
-  <div id="forecastChart"></div>
+  <div id="tempChart"></div>
+  <div id="precipChart"></div>
+  <div id="solarChart"></div>
 </div>
   <script>
     const params = new URLSearchParams(window.location.search);
@@ -355,8 +357,7 @@ if (data.find(d => d.dataid === bldg)) {
       document.getElementById("msg").innerText = "Error loading CSV: " + err;
       console.error(err);
     });
-    
-    // Tab switching
+// Tab switching
 function openTab(evt, tabName) {
   document.querySelectorAll(".tabcontent").forEach(el => el.style.display = "none");
   document.querySelectorAll(".tablinks").forEach(el => el.classList.remove("active"));
@@ -367,48 +368,55 @@ function openTab(evt, tabName) {
 document.getElementById("defaultOpen").click();
   </script>
 <script>
-// Simple forecast chart using Open-Meteo
+// ===== Forecast charts =====
 function loadForecast() {
-  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,relative_humidity_2m&timezone=America/New_York")
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,apparent_temperature,precipitation,shortwave_radiation&timezone=America/New_York")
     .then(res => res.json())
     .then(data => {
       const times = data.hourly.time;
-      const temps = data.hourly.temperature_2m;
-      const rh = data.hourly.relative_humidity_2m;
-const traceTemp = {
-  x: times,
-  y: temps,
-  type: "scatter",
-  mode: "lines+markers",
-  name: "Temperature (°C)",
-  line: { color: "red" },
-  hovertemplate: "%{x}<br>Temp: %{y} °C<extra></extra>"
-};
-const traceRH = {
-  x: times,
-  y: rh,
-  type: "scatter",
-  mode: "lines",
-  name: "Relative Humidity (%)",
-  line: { color: "blue", dash: "dot" },
-  hovertemplate: "%{x}<br>RH: %{y}%<extra></extra>"
-};
-const layout = {
-  title: "Hourly Weather Forecast (Next 7 Days)",
-  grid: { rows: 2, columns: 1, pattern: "independent" },
-  hovermode: "x unified",
-  xaxis: { title: "Time" },     // shared x-axis
-  xaxis2: { title: "Time", matches: "x" }, // force humidity chart to match temp axis
-  yaxis: { title: "Temperature (°C)" },
-  yaxis2: { title: "Relative Humidity (%)" }
-};
-Plotly.newPlot("forecastChart", [
-  { ...traceTemp, xaxis: "x", yaxis: "y" },
-  { ...traceRH,   xaxis: "x2", yaxis: "y2" }
-], layout);
+      const temp = data.hourly.temperature_2m;
+      const appTemp = data.hourly.apparent_temperature;
+      const precip = data.hourly.precipitation;
+      const solar = data.hourly.shortwave_radiation;
+      // --- Temperature vs Apparent Temperature ---
+      const traceTemp = {
+        x: times, y: temp, type: "scatter", mode: "lines",
+        name: "Air Temp (°C)", line: { color: "red" }
+      };
+      const traceApp = {
+        x: times, y: appTemp, type: "scatter", mode: "lines",
+        name: "Apparent Temp (°C)", line: { color: "orange", dash: "dot" }
+      };
+      Plotly.newPlot("tempChart", [traceTemp, traceApp], {
+        title: "Hourly Temperature vs. Apparent Temperature",
+        xaxis: { title: "Time" },
+        yaxis: { title: "°C" },
+        hovermode: "x unified"
+      });
+      // --- Precipitation ---
+      const tracePrecip = {
+        x: times, y: precip, type: "bar", name: "Precipitation (mm)", marker: { color: "blue" }
+      };
+      Plotly.newPlot("precipChart", [tracePrecip], {
+        title: "Hourly Precipitation Forecast",
+        xaxis: { title: "Time" },
+        yaxis: { title: "mm" },
+        hovermode: "x unified"
+      });
+      // --- Solar Radiation ---
+      const traceSolar = {
+        x: times, y: solar, type: "scatter", mode: "lines",
+        name: "Solar Radiation (W/m²)", line: { color: "gold" }
+      };
+      Plotly.newPlot("solarChart", [traceSolar], {
+        title: "Hourly Solar Radiation Forecast",
+        xaxis: { title: "Time" },
+        yaxis: { title: "W/m²" },
+        hovermode: "x unified"
+      });
     });
 }
-// Optional: load forecast immediately when Forecast tab is opened
+// Hook forecast loader to Forecast tab button
 document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
 </script>
 </body>
