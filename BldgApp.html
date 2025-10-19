@@ -315,23 +315,18 @@ function drawDayOfWeekChart(homeId) {
   // The ONLY seasonal function — do not redefine it later
   function drawSeasonCharts(homeId) {
     document.getElementById("msg").innerText = "";
-
     const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
     const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
-
     const summerData = sRow ? prepPercent(sRow, sAvg, "Home " + homeId, "Community Average") : [];
     const winterData = wRow ? prepPercent(wRow, wAvg, "Home " + homeId, "Community Average") : [];
-
     const maxValS = d3.max(summerData, d => d.val) || 0;
     const maxValW = d3.max(winterData, d => d.val) || 0;
-
     safePlot("summerChart", makeTraces(summerData), {
       barmode: "group",
       title: "Summer (June-Aug) Energy Usage Distribution by Category for Home " + homeId,
       yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] },
       xaxis: { title: "Category" }
     });
-
     safePlot("winterChart", makeTraces(winterData), {
       barmode: "group",
       title: "Winter (Dec-Feb) Energy Usage Distribution by Category for Home " + homeId,
@@ -339,7 +334,6 @@ function drawDayOfWeekChart(homeId) {
       xaxis: { title: "Category" }
     });
   }
-
   // Hookups
 document.getElementById("homeSelect").addEventListener("change", e => {
   drawSeasonCharts(e.target.value);
@@ -402,11 +396,15 @@ const traceRH = {
 const layout = {
   title: "Hourly Weather Forecast (Next 7 Days)",
   grid: { rows: 2, columns: 1, pattern: "independent" },
-  hovermode: "x unified"
+  hovermode: "x unified",
+  xaxis: { title: "Time" },     // shared x-axis
+  xaxis2: { title: "Time", matches: "x" }, // force humidity chart to match temp axis
+  yaxis: { title: "Temperature (°C)" },
+  yaxis2: { title: "Relative Humidity (%)" }
 };
 Plotly.newPlot("forecastChart", [
   { ...traceTemp, xaxis: "x", yaxis: "y" },
-  { ...traceRH, xaxis: "x2", yaxis: "y2" }
+  { ...traceRH,   xaxis: "x2", yaxis: "y2" }
 ], layout);
     });
 }
