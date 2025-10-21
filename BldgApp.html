@@ -196,17 +196,15 @@ Promise.all([
       .filter(k => k !== "dataid" && +row[k] > 0)
       .map(k => ({ cat: k, val: +row[k] }));
     const total = d3.sum(entries, d => d.val);
-    const homeData = entries.map(d => ({ cat: d.cat, val: d.val / total * 100, type: labelHome }));
-
+// Home data: store both % and raw kWh
+  const homeData = entries.map(d => ({cat: d.cat, val: d.val / total * 100, raw: d.val, type: labelHome}));
     const avgEntries = Object.keys(avg)
       .filter(k => avg[k] > 0)
       .map(k => ({ cat: k, val: avg[k] }));
     const avgTotal = d3.sum(avgEntries, d => d.val);
     const avgData = avgEntries.map(d => ({ cat: d.cat, val: d.val / avgTotal * 100, type: labelAvg }));
-
     return [...homeData, ...avgData];
   }
-
   function makeTraces(data) {
     const types = [...new Set(data.map(d => d.type))];
     return types.map(t => {
@@ -216,7 +214,7 @@ Promise.all([
         y: filtered.map(d => d.val),
         name: t,
         type: "bar",
-        text: filtered.map(d => d.val.toFixed(1) + "%"),
+        text: filtered.map(d => d.val.toFixed(1) + "%" (" + d.raw.toFixed(1) + " kWh)")),
         textposition: "outside"
       };
     });
