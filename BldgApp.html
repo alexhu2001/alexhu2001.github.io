@@ -189,37 +189,54 @@ Promise.all([
 
   const sAvg = avgRow(summer);
   const wAvg = avgRow(winter);
+function prepPercent(row, avg, labelHome, labelAvg) {
+  if (!row) return [];
 
-  function prepPercent(row, avg, labelHome, labelAvg) {
-    if (!row) return [];
-    const entries = Object.keys(row)
-      .filter(k => k !== "dataid" && +row[k] > 0)
-      .map(k => ({ cat: k, val: +row[k] }));
-    const total = d3.sum(entries, d => d.val);
-// Home data: store both % and raw kWh
-  const homeData = entries.map(d => ({cat: d.cat, val: d.val / total * 100, raw: d.val, type: labelHome}));
-    const avgEntries = Object.keys(avg)
-      .filter(k => avg[k] > 0)
-      .map(k => ({ cat: k, val: avg[k] }));
-    const avgTotal = d3.sum(avgEntries, d => d.val);
-    const avgData = avgEntries.map(d => ({ cat: d.cat, val: d.val / avgTotal * 100, type: labelAvg }));
-    return [...homeData, ...avgData];
-  }
-  function makeTraces(data) {
-    const types = [...new Set(data.map(d => d.type))];
-    return types.map(t => {
-      const filtered = data.filter(d => d.type === t);
-      return {
-        x: filtered.map(d => d.cat),
-        y: filtered.map(d => d.val),
-        name: t,
-        type: "bar",
-        text: filtered.map(d => d.val.toFixed(1) + "%" (" + d.raw.toFixed(1) + " kWh)")),
-        textposition: "outside"
-      };
-    });
-  }
+  const entries = Object.keys(row)
+    .filter(k => k !== "dataid" && +row[k] > 0)
+    .map(k => ({ cat: k, val: +row[k] }));
 
+  const total = d3.sum(entries, d => d.val);
+
+  const homeData = entries.map(d => ({
+    cat: d.cat,
+    val: d.val / total * 100,   // percentage
+    raw: d.val,                 // actual kWh
+    type: labelHome
+  }));
+
+  const avgEntries = Object.keys(avg)
+    .filter(k => avg[k] > 0)
+    .map(k => ({ cat: k, val: avg[k] }));
+
+  const avgTotal = d3.sum(avgEntries, d => d.val);
+
+  const avgData = avgEntries.map(d => ({
+    cat: d.cat,
+    val: d.val / avgTotal * 100,
+    raw: d.val,
+    type: labelAvg
+  }));
+
+  return [...homeData, ...avgData];
+}
+
+function makeTraces(data) {
+  const types = [...new Set(data.map(d => d.type))];
+  return types.map(t => {
+    const filtered = data.filter(d => d.type === t);
+    return {
+      x: filtered.map(d => d.cat),
+      y: filtered.map(d => d.val),
+      name: t,
+      type: "bar",
+      text: filtered.map(d =>
+        d.val.toFixed(1) + "% (" + d.raw.toFixed(1) + " kWh)"
+      ),
+      textposition: "outside"
+    };
+  });
+}
   // Keep hourly at top-level inside this Promise block
 function drawHourlyChart(homeId) {
   Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
