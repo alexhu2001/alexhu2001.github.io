@@ -6,6 +6,24 @@
   .tab button { background: none; border: none; padding: 10px 16px; cursor: pointer; }
   .tab button.active { background: #ccc; }
   .tabcontent { display: none; padding: 16px; }
+  .info-card {
+  display: grid;
+  grid-template-columns: 40px auto;
+  gap: 10px 15px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  max-width: 400px;
+  background: #fafafa;
+  font-family: sans-serif;
+}
+.info-card .icon {
+  font-size: 1.2em;
+  text-align: center;
+}
+.info-card .label {
+  font-weight: bold;
+}
 </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,8 +60,9 @@
 </div>
 <!-- Info tab -->
 <div id="Info" class="tabcontent">
-  <h2>About this Dashboard</h2>
+  <h2>Home Information</h2>
   <p>This tool shows monthly electricity consumption for selected homes, compared with the community average.</p>
+  <div id="homeInfoCard" class="info-card"></div>
 </div>
 <!-- Forecast tab -->
 <div id="Forecast" class="tabcontent">
@@ -237,7 +256,7 @@ function makeTraces(data) {
     };
   });
 }
-  // Keep hourly at top-level inside this Promise block
+// Keep hourly at top-level inside this Promise block
 function drawHourlyChart(homeId) {
   Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
     if (err) {
@@ -260,15 +279,8 @@ const trace = {
 };
     const layout = {
       title: "Hourly Energy Use for Home " + homeId,
-      xaxis: {
-        title: "Hour of Day",
-        tickmode: "linear",
-        dtick: 1,
-        range: [0, 23]
-      },
-      yaxis: {
-        title: "Energy Use (kWh)"
-      }
+      xaxis: {title: "Hour of Day", tickmode: "linear", dtick: 1, range: [0, 23]},
+      yaxis: {title: "Energy Use (kWh)"}
     };
     safePlot("hourlyChart", [trace], layout);
   });
@@ -312,7 +324,6 @@ function drawDayOfWeekChart(homeId) {
       marker: { color: "orange" },
       name: "Community Average"
     };
-
     const layout = {
       barmode: "group",
       title: "Average Daily Energy Use by Day of Week for Home " + homeId,
@@ -320,6 +331,31 @@ function drawDayOfWeekChart(homeId) {
       yaxis: { title: "Energy Use (kWh)" }
     };
     safePlot("dayOfWeekChart", [traceHome, traceAvg], layout);
+  });
+}
+// ===== Home Info card =====
+function drawHomeInfo(homeId) {
+  d3.csv("PropertyData.csv").then(rows => {
+    const row = rows.find(r => Number(r["Data ID"]) === Number(homeId));
+    if (!row) {
+      document.getElementById("homeInfoCard").innerHTML = "No info available.";
+      return;
+    }
+    const infoItems = [
+      { icon: "🏠", label: "Exterior Wall", value: row["Exterior Wall"] },
+      { icon: "📅", label: "Year Built", value: row["Year Built"] },
+      { icon: "📐", label: "Sq Ft", value: row["Res Sq Ft"] },
+      { icon: "🛏️", label: "Bedrooms", value: row["Bedrooms"] },
+      { icon: "🔥", label: "Heating System", value: row["Heating System"] },
+      { icon: "💨", label: "Heat", value: row["Heat"] },
+      { icon: "📊", label: "Grade Factor", value: row["Grade Factor"] },
+      { icon: "💲", label: "Assessed Value", value: row["Assessed Value"] }
+    ];
+    const html = infoItems.map(item => `
+      <div class="icon">${item.icon}</div>
+      <div><span class="label">${item.label}:</span> ${item.value}</div>
+    `).join("");
+    document.getElementById("homeInfoCard").innerHTML = html;
   });
 }
   // The ONLY seasonal function — do not redefine it later
@@ -349,12 +385,14 @@ document.getElementById("homeSelect").addEventListener("change", e => {
   drawSeasonCharts(e.target.value);
   drawHourlyChart(e.target.value);
   drawDayOfWeekChart(e.target.value);
+  drawHomeInfo(e.target.value);
 });
 
 if (data.find(d => d.dataid === bldg)) {
   drawSeasonCharts(bldg);
   drawHourlyChart(bldg);
   drawDayOfWeekChart(bldg);
+  drawHomeInfo(bldg);
 }
 
 }).catch(err => {
