@@ -370,9 +370,11 @@ function drawMonthlyCostChart(homeId) {
     const months = Object.keys(row).filter(k => k !== "dataid");
     const values = months.map(m => row[m] ? +row[m] : null);
     // 社区平均
-    const avgValues = months.map(m => {
-      const nums = costData.map(r => +r[m]).filter(v => !isNaN(v));
-      return nums.length ? d3.mean(nums) : null;
+const avgValues = months.map(m => {
+  const nums = costData
+    .map(r => r[m] ? +r[m] : NaN)   // convert only if not empty
+    .filter(v => !isNaN(v));        // drop NaN values
+  return nums.length ? d3.mean(nums) : null;
     });
     const traceHome = {
       x: months,
