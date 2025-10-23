@@ -45,6 +45,8 @@
   <select id="homeSelect"></select>
   <div id="chart"></div>
   <div id="msg" style="color:red;"></div>
+  <h2 id="titleCost">Monthly Energy Cost</h2>
+  <div id="monthlyCostChart"></div>
   <!-- ===== Winter/Summer Comparison Section START ===== -->
   <hr>
   <h2 id="title2">Seasonal Energy Usage Breakdown by Category (%)</h2>
@@ -358,6 +360,43 @@ function drawHomeInfo(homeId) {
     document.getElementById("homeInfoCard").innerHTML = html;
   });
 }
+function drawMonthlyCostChart(homeId) {
+  d3.csv("EnergyCost.csv").then(costData => {
+    const row = costData.find(r => r.dataid === homeId);
+    if (!row) {
+      document.getElementById("monthlyCostChart").innerHTML = "No cost data available.";
+      return;
+    }
+    const months = Object.keys(row).filter(k => k !== "dataid");
+    const values = months.map(m => row[m] ? +row[m] : null);
+    // 社区平均
+    const avgValues = months.map(m => {
+      const nums = costData.map(r => +r[m]).filter(v => !isNaN(v));
+      return nums.length ? d3.mean(nums) : null;
+    });
+    const traceHome = {
+      x: months,
+      y: values,
+      type: "bar",
+      name: "Home Cost",
+      marker: { color: "#1f77b4" }
+    };
+    const traceAvg = {
+      x: months,
+      y: avgValues,
+      type: "scatter",
+      mode: "lines+markers",
+      name: "Community Avg",
+      line: { color: "orange", width: 2 }
+    };
+    const layout = {
+      barmode: "group",
+      yaxis: { title: "Monthly Cost ($)" },
+      margin: { t: 30 }
+    };
+    Plotly.newPlot("monthlyCostChart", [traceHome, traceAvg], layout, {responsive: true});
+  });
+}
   // The ONLY seasonal function — do not redefine it later
   function drawSeasonCharts(homeId) {
     document.getElementById("msg").innerText = "";
@@ -382,6 +421,7 @@ function drawHomeInfo(homeId) {
   }
   // Hookups
 document.getElementById("homeSelect").addEventListener("change", e => {
+  drawMonthlyCostChart(e.target.value);
   drawSeasonCharts(e.target.value);
   drawHourlyChart(e.target.value);
   drawDayOfWeekChart(e.target.value);
@@ -389,6 +429,7 @@ document.getElementById("homeSelect").addEventListener("change", e => {
 });
 
 if (data.find(d => d.dataid === bldg)) {
+  drawMonthlyCostChart(bldg);
   drawSeasonCharts(bldg);
   drawHourlyChart(bldg);
   drawDayOfWeekChart(bldg);
