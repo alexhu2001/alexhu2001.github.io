@@ -377,9 +377,10 @@ function drawMonthlyCostChart(homeId) {
     const traceHome = {
       x: months,
       y: values,
-      type: "bar",
+      type: "scatter",
+      mode: "lines+markers",
       name: "Home Cost",
-      marker: { color: "#1f77b4" }
+      marker: { color: "#1f77b4", width: 2 }
     };
     const traceAvg = {
       x: months,
