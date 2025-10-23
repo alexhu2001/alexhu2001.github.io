@@ -338,7 +338,7 @@ function drawDayOfWeekChart(homeId) {
 // ===== Home Info card =====
 function drawHomeInfo(homeId) {
   d3.csv("PropertyData.csv").then(rows => {
-    const row = rows.find(r => Number(r["Data ID"]) === Number(homeId));
+    const row = rows.find(r => Number(r["dataid"]) === Number(homeId));
     if (!row) {
       document.getElementById("homeInfoCard").innerHTML = "No info available.";
       return;
