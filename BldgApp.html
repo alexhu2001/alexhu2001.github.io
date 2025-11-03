@@ -251,7 +251,7 @@ function makeTraces(data) {
       y: filtered.map(d => d.val),
       name: t,
       type: "bar",
-      text: d.val.toFixed(1) + "%",
+      text: filtered.map(d => d.val.toFixed(1) + "%"),
 //      text: filtered.map(d => d.val.toFixed(1) + "% (" + d.raw.toFixed(1) + " kWh)"),
       textposition: "outside"
     };
