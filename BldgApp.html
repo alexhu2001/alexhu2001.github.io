@@ -163,6 +163,8 @@ function safePlot(divId, data, layout) {
         // --- Compute averages ---
         const homeAvg = d3.mean(y).toFixed(1);
         const commAvg = avgY.length > 0 ? d3.mean(avgY).toFixed(1) : "N/A";
+        const homeCostAvg = d3.mean(costY).toFixed(2);
+        const commCostAvg = costAvgY.length > 0 ? d3.mean(costAvgY).toFixed(2) : "N/A";
 
         safePlot("chart", [
           {
@@ -192,7 +194,9 @@ function safePlot(divId, data, layout) {
     yanchor: "top",
     orientation: "v"
   },
-  margin: { r: 180, t: 50, b: 50, l: 60 },
+  margin: { r: 200, t: 50, b: 50, l: 60 },
+
+  // ⬇️ Add all averages as annotations
   annotations: [
     {
       xref: "paper",
@@ -209,6 +213,24 @@ function safePlot(divId, data, layout) {
       x: 1.02,
       y: 0.86,
       text: "Community Avg: " + commAvg + " kWh/month",
+      showarrow: false,
+      align: "left"
+    },
+    {
+      xref: "paper",
+      yref: "paper",
+      x: 1.02,
+      y: 0.80,
+      text: "Home Cost Avg: $" + homeCostAvg + "/month",
+      showarrow: false,
+      align: "left"
+    },
+    {
+      xref: "paper",
+      yref: "paper",
+      x: 1.02,
+      y: 0.74,
+      text: "Community Cost Avg: $" + commCostAvg + "/month",
       showarrow: false,
       align: "left"
     }]
