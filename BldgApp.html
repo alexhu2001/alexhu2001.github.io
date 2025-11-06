@@ -184,25 +184,25 @@ function safePlot(divId, data, layout) {
           title: "Total Energy Consumption by Month for Home " + homeId,
           xaxis: { title: "Month", type: "date" },
           yaxis: { title: "kWh", range: [0, yMax] },
-          legend: { x: 1, y: 1 },   // keep legend on right
+  // Ensure legend is on the right with consistent anchoring
+  legend: { x: 1.02, y: 1, xanchor: "left", yanchor: "top", orientation: "v" },
+  // Add space on the right for text below the legend
+  margin: { r: 180, t: 50, b: 50, l: 60 },
   annotations: [
     {
       xref: "paper", yref: "paper",
-      x: 1.02, y: 0.9,       // position just below legend
+      x: 1.02, y: 0.92,
       text: "Home Avg: " + homeAvg + " kWh/month",
-      showarrow: false,
-      align: "left"
+      showarrow: false, align: "left"
     },
     {
       xref: "paper", yref: "paper",
-      x: 1.02, y: 0.85,
+      x: 1.02, y: 0.86,
       text: "Community Avg: " + commAvg + " kWh/month",
-      showarrow: false,
-      align: "left"
+      showarrow: false, align: "left"
     }
   ]
         });
-      }
 
       // Initial draw
       drawChart(bldg);
