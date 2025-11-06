@@ -160,6 +160,10 @@ function safePlot(divId, data, layout) {
         const maxValAvg = avgY.length > 0 ? Math.max(...avgY) : 0;
         const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
 
+        // --- Compute averages ---
+        const homeAvg = d3.mean(y).toFixed(1);
+        const commAvg = avgY.length > 0 ? d3.mean(avgY).toFixed(1) : "N/A";
+
         safePlot("chart", [
           {
             x: x,
@@ -180,6 +184,23 @@ function safePlot(divId, data, layout) {
           title: "Total Energy Consumption by Month for Home " + homeId,
           xaxis: { title: "Month", type: "date" },
           yaxis: { title: "kWh", range: [0, yMax] },
+          legend: { x: 1, y: 1 },   // keep legend on right
+  annotations: [
+    {
+      xref: "paper", yref: "paper",
+      x: 1.02, y: 0.9,       // position just below legend
+      text: "Home Avg: " + homeAvg + " kWh/month",
+      showarrow: false,
+      align: "left"
+    },
+    {
+      xref: "paper", yref: "paper",
+      x: 1.02, y: 0.85,
+      text: "Community Avg: " + commAvg + " kWh/month",
+      showarrow: false,
+      align: "left"
+    }
+  ]
         });
       }
 
