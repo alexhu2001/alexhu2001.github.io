@@ -184,25 +184,6 @@ function safePlot(divId, data, layout) {
           title: "Total Energy Consumption by Month for Home " + homeId,
           xaxis: { title: "Month", type: "date" },
           yaxis: { title: "kWh", range: [0, yMax] },
-  // Ensure legend is on the right with consistent anchoring
-  legend: { x: 1.02, y: 1, xanchor: "left", yanchor: "top", orientation: "v" },
-  // Add space on the right for text below the legend
-  margin: { r: 180, t: 50, b: 50, l: 60 },
-// Remove any existing avg block
-const avgBlock = document.getElementById("energyAvgBlock");
-if (avgBlock) avgBlock.remove();
-
-// Create new block
-const newBlock = document.createElement("div");
-newBlock.id = "energyAvgBlock";
-newBlock.style.textAlign = "right";
-newBlock.style.marginRight = "40px";
-newBlock.innerHTML = `
-  <p><strong>Home Avg:</strong> ${homeAvg} kWh/month</p>
-  <p><strong>Community Avg:</strong> ${commAvg} kWh/month</p>
-`;
-document.getElementById("chart").appendChild(newBlock);
-
         });
       }
       // Initial draw
