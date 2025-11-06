@@ -194,9 +194,7 @@ function safePlot(divId, data, layout) {
     yanchor: "top",
     orientation: "v"
   },
-  margin: { r: 200, t: 50, b: 50, l: 60 },
-
-  // ⬇️ Add all averages as annotations
+  margin: { r: 180, t: 50, b: 50, l: 60 },
   annotations: [
     {
       xref: "paper",
@@ -213,24 +211,6 @@ function safePlot(divId, data, layout) {
       x: 1.02,
       y: 0.86,
       text: "Community Avg: " + commAvg + " kWh/month",
-      showarrow: false,
-      align: "left"
-    },
-    {
-      xref: "paper",
-      yref: "paper",
-      x: 1.02,
-      y: 0.80,
-      text: "Home Cost Avg: $" + homeCostAvg + "/month",
-      showarrow: false,
-      align: "left"
-    },
-    {
-      xref: "paper",
-      yref: "paper",
-      x: 1.02,
-      y: 0.74,
-      text: "Community Cost Avg: $" + commCostAvg + "/month",
       showarrow: false,
       align: "left"
     }]
