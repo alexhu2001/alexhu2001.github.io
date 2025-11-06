@@ -163,8 +163,6 @@ function safePlot(divId, data, layout) {
         // --- Compute averages ---
         const homeAvg = d3.mean(y).toFixed(1);
         const commAvg = avgY.length > 0 ? d3.mean(avgY).toFixed(1) : "N/A";
-        const homeCostAvg = d3.mean(costY).toFixed(2);
-        const commCostAvg = costAvgY.length > 0 ? d3.mean(costAvgY).toFixed(2) : "N/A";
 
         safePlot("chart", [
           {
