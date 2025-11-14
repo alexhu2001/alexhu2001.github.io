@@ -96,7 +96,7 @@ function safePlot(divId, data, layout) {
     Plotly.newPlot(divId, data, layout, {responsive:true});
   }
 }
-    d3.csv("DataSummary.csv").then(function(data) {
+    d3.csv("MonthlyEnergy_28days.csv").then(function(data) {
       const headers = data.columns;
       const dateCols = headers.slice(1);
       
