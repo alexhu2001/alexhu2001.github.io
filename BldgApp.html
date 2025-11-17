@@ -314,14 +314,12 @@ const traceAvg = {
   x: hours,
   y: values,
   type: "scatter",
-  mode: "lines+markers+text",   // add text labels
+  mode: "lines+markers",   // add text labels
   text: values.map(v => v.toFixed(1) + " kWh"), // label each point
   textposition: "top center",
   line: { color: "#1f77b4", width: 2 },
   marker: { size: 6 },
   name: "Home " + homeId
-      legendgroup: "home",
-      showlegend: true
 };
     const layout = {
       title: "Hourly Energy Use for Home " + homeId,
