@@ -326,7 +326,7 @@ const traceAvg = {
       xaxis: {title: "Hour of Day", tickmode: "linear", dtick: 1, range: [0, 23]},
       yaxis: {title: "Energy Use (kWh)"}
     };
-    safePlot("hourlyChart", [trace], layout);
+    safePlot("hourlyChart", [trace, traceAvg], layout);
   });
 }
 // ===== Day of Week chart =====
