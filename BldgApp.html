@@ -298,7 +298,19 @@ function drawHourlyChart(homeId) {
     const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
     const hours = filtered.map(r => +r.hour);
     const values = filtered.map(r => +r.grid);
-const trace = {
+// --- Community average across all homes ---
+const grouped = d3.nest()
+  .key(d => +d.hour)
+  .rollup(v => d3.mean(v, d => +d.grid))
+  .entries(rows);
+const avgHours = grouped.map(d => d.key);
+const avgValues = grouped.map(d => d.value);
+const traceAvg = {
+  x: avgHours, y: avgValues, type: "scatter", mode: "lines",
+  line: { color: "orange", dash: "dot" },
+  name: "Community Average"
+};
+    const trace = {
   x: hours,
   y: values,
   type: "scatter",
