@@ -190,26 +190,20 @@ function safePlot(divId, data, layout) {
       });
 // Populate cost tab dropdown
 const homeSelectCost = document.getElementById("homeSelectCost");
-data.forEach(d => {
-    const opt = document.createElement("option");
-    opt.value = String(d.dataid).trim();
-    opt.textContent = "Home " + d.dataid;
-    homeSelectCost.appendChild(opt);
-});
-
-// When user selects a home
-homeSelectCost.addEventListener("change", function() {
-    const selected = data.find(d => String(d.dataid).trim() === String(this.value).trim());
-    if (selected) drawCostChart(selected);
-});
-const months = Object.keys(homeData).filter(m => m !== "dataid");
-const kwhValues = months.map(m => Number(homeData[m]));
-const costValues = months.map((kwh, i) => calculateCost(kwh, months[i]));
-
-// Initial draw
+    data.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d.dataid;
+        opt.textContent = "Home " + d.dataid;
+        homeSelectCost.appendChild(opt);
+    });
+    homeSelectCost.addEventListener("change", function() {
+        const selected = data.find(d => d.dataid == this.value);
+        drawCostChart(selected);
+    });
+// Initial draw for the first home
 if (data.length > 0) {
     const first = data[0];
-    homeSelectCost.value = String(first.dataid).trim();
+    homeSelectCost.value = first.dataid;
     drawCostChart(first);
 }
       selectEl.value = bldg;
