@@ -98,6 +98,69 @@
       }
       return new Date(s);
     }
+// === Energy Cost Calculator (Atlanta version) ===
+function calculateCost(kwh, yearMonth) {
+    if (!kwh || kwh <= 0) return null;
+
+    const [year, month] = yearMonth.split('-').map(Number);
+    const numDays = new Date(year, month, 0).getDate();
+
+    const basicCharge = 0.4603 * numDays;
+    const isSummer = [6, 7, 8, 9].includes(month);
+
+    let energyCharge = 0;
+    if (isSummer) {
+        if (kwh <= 650) {
+            energyCharge = kwh * 0.086;
+        } else if (kwh <= 1000) {
+            energyCharge = (650 * 0.086) + ((kwh - 650) * 0.143);
+        } else {
+            energyCharge = (650 * 0.086) + (350 * 0.143) + ((kwh - 1000) * 0.148);
+        }
+    } else {
+        energyCharge = kwh * 0.081;
+    }
+
+    const subtotal = basicCharge + energyCharge;
+    const eccr = kwh * 0.0145;
+    const mff = (subtotal + eccr) * 0.030674;
+    const salesTax = (subtotal + eccr + mff) * 0.089;
+
+    return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
+}
+function drawCostChart(homeData) {
+    const months = Object.keys(homeData).filter(m => m !== "dataid");
+    const kwhValues = months.map(m => homeData[m]);
+    const costValues = months.map((kwh, i) => calculateCost(kwh, months[i]));
+
+    const trace = {
+        x: months,
+        y: costValues,
+        type: 'bar',
+        marker: { color: '#4a90e2' },
+        name: 'Estimated Cost ($)'
+    };
+
+    const layout = {
+        title: 'Estimated Monthly Energy Cost',
+        yaxis: { title: 'Cost ($)' }
+    };
+
+    Plotly.newPlot('costChart', [trace], layout);
+}
+// Populate cost tab dropdown
+const homeSelectCost = document.getElementById("homeSelectCost");
+data.forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d.dataid;
+    opt.textContent = "Home " + d.dataid;
+    homeSelectCost.appendChild(opt);
+});
+  homeSelectCost.addEventListener("change", function() {
+    const selected = data.find(d => d.dataid == this.value);
+    drawCostChart(selected);
+});
+
 //通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
   const div = document.getElementById(divId);
@@ -113,7 +176,6 @@ function safePlot(divId, data, layout) {
     d3.csv("MonthlyEnergy_28days.csv").then(function(data) {
       const headers = data.columns;
       const dateCols = headers.slice(1);
-      
       // Compute average for each month across all homes
       const avgByMonth = {};
       dateCols.forEach(col => {
@@ -126,8 +188,7 @@ function safePlot(divId, data, layout) {
         if (vals.length > 0) {
           avgByMonth[col] = d3.mean(vals);
         }
-      });
-      
+      });   
       // Populate dropdown
       const selectEl = document.getElementById("homeSelect");
       data.forEach(row => {
@@ -140,14 +201,12 @@ function safePlot(divId, data, layout) {
         }
       });
       selectEl.value = bldg;
-
       function drawChart(homeId) {
         const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
         if (!row) {
           document.getElementById("msg").innerText = "No data for " + homeId;
           return;
         }
-
         const x = [], y = [];
         dateCols.forEach(col => {
           const val = row[col];
@@ -161,7 +220,6 @@ function safePlot(divId, data, layout) {
           safePlot("chart", [], {});   // hide chart properly
           return;
         }
-        
         const avgX = [], avgY = [];
         dateCols.forEach(col => {
           if (avgByMonth[col] !== undefined) {
@@ -169,15 +227,13 @@ function safePlot(divId, data, layout) {
             avgY.push(avgByMonth[col]);
           }
         });
-        
         const maxValHome = Math.max(...y);
         const maxValAvg = avgY.length > 0 ? Math.max(...avgY) : 0;
         const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
 
         // --- Compute averages ---
         const homeAvg = d3.mean(y).toFixed(1);
-        const commAvg = avgY.length > 0 ? d3.mean(avgY).toFixed(1) : "N/A";
-        
+        const commAvg = avgY.length > 0 ? d3.mean(avgY).toFixed(1) : "N/A";  
         safePlot("chart", [
           {
             x: x,
@@ -252,41 +308,32 @@ Promise.all([
     });
     return result;
   }
-
   const sAvg = avgRow(summer);
   const wAvg = avgRow(winter);
 function prepPercent(row, avg, labelHome, labelAvg) {
   if (!row) return [];
-
   const entries = Object.keys(row)
     .filter(k => k !== "dataid" && +row[k] > 0)
     .map(k => ({ cat: k, val: +row[k] }));
-
   const total = d3.sum(entries, d => d.val);
-
   const homeData = entries.map(d => ({
     cat: d.cat,
     val: d.val / total * 100,   // percentage
     raw: d.val,                 // actual kWh
     type: labelHome
   }));
-
   const avgEntries = Object.keys(avg)
     .filter(k => avg[k] > 0)
     .map(k => ({ cat: k, val: avg[k] }));
-
   const avgTotal = d3.sum(avgEntries, d => d.val);
-
   const avgData = avgEntries.map(d => ({
     cat: d.cat,
     val: d.val / avgTotal * 100,
     raw: d.val,
     type: labelAvg
   }));
-
   return [...homeData, ...avgData];
 }
-
 function makeTraces(data) {
   const types = [...new Set(data.map(d => d.type))];
   return types.map(t => {
