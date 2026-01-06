@@ -200,6 +200,12 @@ data.forEach(d => {
     const selected = data.find(d => d.dataid == this.value);
     drawCostChart(selected);
 });
+homeSelectCost.value = bldg; 
+    // Find the data for the current building and draw the chart immediately
+    const initialCostData = data.find(d => d.dataid == bldg);
+    if (initialCostData) {
+        drawCostChart(initialCostData);
+    }
       selectEl.value = bldg;
       function drawChart(homeId) {
         const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
