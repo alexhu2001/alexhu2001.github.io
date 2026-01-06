@@ -130,7 +130,7 @@ function calculateCost(kwh, yearMonth) {
 }
 function drawCostChart(homeData) {
     const months = Object.keys(homeData).filter(m => m !== "dataid");
-    const kwhValues = months.map(m => homeData[m]);
+    const kwhValues = months.map(m => Number(homeData[m]));
     const costValues = months.map((kwh, i) => calculateCost(kwh, months[i]));
 
     const trace = {
@@ -200,12 +200,12 @@ const homeSelectCost = document.getElementById("homeSelectCost");
         const selected = data.find(d => d.dataid == this.value);
         drawCostChart(selected);
     });
-homeSelectCost.value = bldg; 
-    // Find the data for the current building and draw the chart immediately
-    const initialCostData = data.find(d => d.dataid == bldg);
-    if (initialCostData) {
-        drawCostChart(initialCostData);
-    }
+// Initial draw for the first home
+if (data.length > 0) {
+    const first = data[0];
+    homeSelectCost.value = first.dataid;
+    drawCostChart(first);
+}
       selectEl.value = bldg;
       function drawChart(homeId) {
         const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
