@@ -190,16 +190,16 @@ function safePlot(divId, data, layout) {
       });
 // Populate cost tab dropdown
 const homeSelectCost = document.getElementById("homeSelectCost");
-data.forEach(d => {
-    const opt = document.createElement("option");
-    opt.value = d.dataid;
-    opt.textContent = "Home " + d.dataid;
-    homeSelectCost.appendChild(opt);
-});
+    data.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d.dataid;
+        opt.textContent = "Home " + d.dataid;
+        homeSelectCost.appendChild(opt);
+    });
     homeSelectCost.addEventListener("change", function() {
-    const selected = data.find(d => d.dataid == this.value);
-    drawCostChart(selected);
-});
+        const selected = data.find(d => d.dataid == this.value);
+        drawCostChart(selected);
+    });
 homeSelectCost.value = bldg; 
     // Find the data for the current building and draw the chart immediately
     const initialCostData = data.find(d => d.dataid == bldg);
