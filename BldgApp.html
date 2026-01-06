@@ -188,7 +188,7 @@ function safePlot(divId, data, layout) {
           selectEl.appendChild(opt);
         }
       });
-      // Populate cost tab dropdown
+// Populate cost tab dropdown
 const homeSelectCost = document.getElementById("homeSelectCost");
 data.forEach(d => {
     const opt = document.createElement("option");
@@ -196,7 +196,7 @@ data.forEach(d => {
     opt.textContent = "Home " + d.dataid;
     homeSelectCost.appendChild(opt);
 });
-  homeSelectCost.addEventListener("change", function() {
+    homeSelectCost.addEventListener("change", function() {
     const selected = data.find(d => d.dataid == this.value);
     drawCostChart(selected);
 });
