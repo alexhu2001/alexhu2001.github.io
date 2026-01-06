@@ -148,18 +148,6 @@ function drawCostChart(homeData) {
 
     Plotly.newPlot('costChart', [trace], layout);
 }
-// Populate cost tab dropdown
-const homeSelectCost = document.getElementById("homeSelectCost");
-data.forEach(d => {
-    const opt = document.createElement("option");
-    opt.value = d.dataid;
-    opt.textContent = "Home " + d.dataid;
-    homeSelectCost.appendChild(opt);
-});
-  homeSelectCost.addEventListener("change", function() {
-    const selected = data.find(d => d.dataid == this.value);
-    drawCostChart(selected);
-});
 
 //通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
@@ -200,6 +188,18 @@ function safePlot(divId, data, layout) {
           selectEl.appendChild(opt);
         }
       });
+      // Populate cost tab dropdown
+const homeSelectCost = document.getElementById("homeSelectCost");
+data.forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d.dataid;
+    opt.textContent = "Home " + d.dataid;
+    homeSelectCost.appendChild(opt);
+});
+  homeSelectCost.addEventListener("change", function() {
+    const selected = data.find(d => d.dataid == this.value);
+    drawCostChart(selected);
+});
       selectEl.value = bldg;
       function drawChart(homeId) {
         const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
