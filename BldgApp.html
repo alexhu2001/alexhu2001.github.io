@@ -135,30 +135,78 @@ function calculateCost(kwh, dateStr) {
 
     return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
 }
-
-function drawCostChart(homeData) {
+function drawCostChart(homeData, avgByMonth) {
     const months = Object.keys(homeData).filter(m => m !== "dataid");
-    
-    // FIX: Map strictly to values first, then calculate
+
+    // 1. Calculate Home Costs
     const costValues = months.map(m => {
-        const kwh = Number(homeData[m]); // Extract the number explicitly
-        return calculateCost(kwh, m);    // Pass number and date string
+        const kwh = Number(homeData[m]); 
+        return calculateCost(kwh, m);
     });
 
-    const trace = {
-        x: months, // Plotly handles date strings automatically
+    // 2. Calculate Community Average Costs (using the passed avgByMonth object)
+    const commValues = months.map(m => {
+        const avgKwh = avgByMonth[m];
+        return calculateCost(avgKwh, m);
+    });
+
+    // 3. Calculate overall averages for the Legend
+    const homeTotalAvg = (costValues.reduce((a, b) => a + b, 0) / costValues.length).toFixed(2);
+    const commTotalAvg = (commValues.reduce((a, b) => a + b, 0) / commValues.length).toFixed(2);
+
+    // 4. Trace 1: The Home (Solid Line + Markers + Text Labels)
+    const traceHome = {
+        x: months,
         y: costValues,
-        type: 'bar',
-        marker: { color: '#4a90e2' },
-        name: 'Estimated Cost ($)'
+        type: 'scatter',
+        mode: 'lines+markers+text', // 'text' enables the labels
+        text: costValues.map(v => '$' + Math.round(v)), // Show rounded dollar amount
+        textposition: 'top center', // Places text above the dot
+        name: `Home ${homeData.dataid} (Avg: $${homeTotalAvg})`,
+        line: { color: '#000000', width: 2 }, // Journal style: Black/High Contrast
+        marker: { size: 7, color: '#000000' },
+        textfont: { family: 'Arial, sans-serif', size: 12, color: 'black' }
     };
 
+    // 5. Trace 2: Community Average (Dashed Line, No Text to avoid clutter)
+    const traceAvg = {
+        x: months,
+        y: commValues,
+        type: 'scatter',
+        mode: 'lines',
+        name: `Community Avg (Avg: $${commTotalAvg})`,
+        line: { color: '#FF0000', width: 2, dash: 'dot' } // Journal style: Red Dotted
+    };
+
+    // 6. Layout: "Research Journal" Style (Clean, White Background)
     const layout = {
-        title: 'Estimated Monthly Energy Cost',
-        yaxis: { title: 'Cost ($)' }
+        title: {
+            text: 'Estimated Monthly Energy Cost',
+            font: { family: 'Times New Roman, serif', size: 22 }
+        },
+        template: 'simple_white', // Removes gray bg, makes axes crisp
+        yaxis: { 
+            title: 'Cost ($)', 
+            showgrid: true, 
+            gridcolor: '#e1e1e1',
+            zeroline: false
+        },
+        xaxis: { 
+            title: '', // Date usually explains itself
+            showgrid: false
+        },
+        legend: {
+            x: 1,
+            y: 1,
+            xanchor: 'right',
+            bgcolor: 'rgba(255,255,255,0.8)',
+            bordercolor: '#000',
+            borderwidth: 1
+        },
+        margin: { t: 60, l: 60, r: 40, b: 60 }
     };
 
-    Plotly.newPlot('costChart', [trace], layout);
+    Plotly.newPlot('costChart', [traceHome, traceAvg], layout, {responsive: true});
 }
 //通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
@@ -207,10 +255,22 @@ const homeSelectCost = document.getElementById("homeSelectCost");
         opt.textContent = d.dataid;
         homeSelectCost.appendChild(opt);
     });
+
     homeSelectCost.addEventListener("change", function() {
         const selected = data.find(d => d.dataid == this.value);
-        drawCostChart(selected);
+        // UPDATED CALL: Pass avgByMonth
+        drawCostChart(selected, avgByMonth); 
     });
+
+    // Initial draw for the first home
+    if (data.length > 0) {
+        // Find the specific building requested in URL (bldg) or default
+        const initialHome = data.find(d => d.dataid == bldg) || data[0]; 
+        homeSelectCost.value = initialHome.dataid;
+        
+        // UPDATED CALL: Pass avgByMonth
+        drawCostChart(initialHome, avgByMonth); 
+    }
 // Initial draw for the first home
 if (data.length > 0) {
     const first = data[0];
