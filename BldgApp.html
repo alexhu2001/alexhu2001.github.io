@@ -136,77 +136,63 @@ function calculateCost(kwh, dateStr) {
     return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
 }
 function drawCostChart(homeData, avgByMonth) {
-    const months = Object.keys(homeData).filter(m => m !== "dataid");
+    // 1. Safety Check: If community data is missing, stop to prevent crashing other tabs
+    if (!homeData || !avgByMonth) return;
 
-    // 1. Calculate Home Costs
-    const costValues = months.map(m => {
-        const kwh = Number(homeData[m]); 
-        return calculateCost(kwh, m);
-    });
+    // 2. Filter Data: Only keep months where the Home has usage > 0
+    const allMonths = Object.keys(homeData).filter(m => m !== "dataid");
+    const validMonths = allMonths.filter(m => Number(homeData[m]) > 0);
 
-    // 2. Calculate Community Average Costs (using the passed avgByMonth object)
-    const commValues = months.map(m => {
-        const avgKwh = avgByMonth[m];
-        return calculateCost(avgKwh, m);
-    });
+    if (validMonths.length === 0) {
+        document.getElementById('monthlyCostChart').innerHTML = "No valid data to display.";
+        return;
+    }
 
-    // 3. Calculate overall averages for the Legend
-    const homeTotalAvg = (costValues.reduce((a, b) => a + b, 0) / costValues.length).toFixed(2);
-    const commTotalAvg = (commValues.reduce((a, b) => a + b, 0) / commValues.length).toFixed(2);
+    // 3. Calculate Costs
+    const costValues = validMonths.map(m => calculateCost(Number(homeData[m]), m));
+    const commValues = validMonths.map(m => calculateCost(avgByMonth[m], m));
 
-    // 4. Trace 1: The Home (Solid Line + Markers + Text Labels)
+    // 4. Calculate Averages for Legend
+    const getAvg = (arr) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "0.00";
+    const homeLegend = `Home ${homeData.dataid} (Avg: $${getAvg(costValues)})`;
+    const commLegend = `Community Avg (Avg: $${getAvg(commValues)})`;
+
+    // 5. Trace 1: Home (Black Line + Dots + Text Labels)
     const traceHome = {
-        x: months,
+        x: validMonths,
         y: costValues,
         type: 'scatter',
-        mode: 'lines+markers+text', // 'text' enables the labels
-        text: costValues.map(v => '$' + Math.round(v)), // Show rounded dollar amount
-        textposition: 'top center', // Places text above the dot
-        name: `Home ${homeData.dataid} (Avg: $${homeTotalAvg})`,
-        line: { color: '#000000', width: 2 }, // Journal style: Black/High Contrast
-        marker: { size: 7, color: '#000000' },
-        textfont: { family: 'Arial, sans-serif', size: 12, color: 'black' }
+        mode: 'lines+markers+text',
+        text: costValues.map(v => '$' + Math.round(v)), // Labels: "$150"
+        textposition: 'top center',
+        name: homeLegend,
+        line: { color: 'black', width: 2 }, 
+        marker: { size: 8, color: 'black', symbol: 'circle' },
+        textfont: { family: 'Arial', size: 12, color: 'black', weight: 'bold' }
     };
 
-    // 5. Trace 2: Community Average (Dashed Line, No Text to avoid clutter)
+    // 6. Trace 2: Community (Red Dotted Line, No Labels)
     const traceAvg = {
-        x: months,
+        x: validMonths,
         y: commValues,
         type: 'scatter',
         mode: 'lines',
-        name: `Community Avg (Avg: $${commTotalAvg})`,
-        line: { color: '#FF0000', width: 2, dash: 'dot' } // Journal style: Red Dotted
+        name: commLegend,
+        line: { color: 'red', width: 2, dash: 'dot' }
     };
 
-    // 6. Layout: "Research Journal" Style (Clean, White Background)
+    // 7. Layout: Academic/Journal Style
     const layout = {
-        title: {
-            text: 'Estimated Monthly Energy Cost',
-            font: { family: 'Times New Roman, serif', size: 22 }
-        },
-        template: 'simple_white', // Removes gray bg, makes axes crisp
-        yaxis: { 
-            title: 'Cost ($)', 
-            showgrid: true, 
-            gridcolor: '#e1e1e1',
-            zeroline: false
-        },
-        xaxis: { 
-            title: '', // Date usually explains itself
-            showgrid: false
-        },
-        legend: {
-            x: 1,
-            y: 1,
-            xanchor: 'right',
-            bgcolor: 'rgba(255,255,255,0.8)',
-            bordercolor: '#000',
-            borderwidth: 1
-        },
-        margin: { t: 60, l: 60, r: 40, b: 60 }
+        title: { text: 'Estimated Monthly Energy Cost', font: { family: 'Times New Roman', size: 24 } },
+        template: 'simple_white', // clean white background
+        yaxis: { title: 'Cost ($)', showgrid: true, gridcolor: '#eee' },
+        xaxis: { title: '', showgrid: false },
+        legend: { x: 1, y: 1.1, xanchor: 'right', orientation: 'h' },
+        margin: { t: 80, l: 60, r: 40, b: 60 },
+        hovermode: 'x unified'
     };
 
-    Plotly.newPlot('costChart', [traceHome, traceAvg], layout, {responsive: true});
+    Plotly.newPlot('monthlyCostChart', [traceHome, traceAvg], layout, {responsive: true});
 }
 //通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
@@ -256,20 +242,18 @@ const homeSelectCost = document.getElementById("homeSelectCost");
         homeSelectCost.appendChild(opt);
     });
 
+    // 1. LISTENER FIX: Pass avgByMonth here
     homeSelectCost.addEventListener("change", function() {
         const selected = data.find(d => d.dataid == this.value);
-        // UPDATED CALL: Pass avgByMonth
         drawCostChart(selected, avgByMonth); 
     });
 
-    // Initial draw for the first home
+    // 2. INITIAL LOAD FIX: Pass avgByMonth here
     if (data.length > 0) {
-        // Find the specific building requested in URL (bldg) or default
-        const initialHome = data.find(d => d.dataid == bldg) || data[0]; 
+        // Use 'bldg' from URL if available, otherwise first home
+        const initialHome = data.find(d => d.dataid == bldg) || data[0];
         homeSelectCost.value = initialHome.dataid;
-        
-        // UPDATED CALL: Pass avgByMonth
-        drawCostChart(initialHome, avgByMonth); 
+        drawCostChart(initialHome, avgByMonth);
     }
 // Initial draw for the first home
 if (data.length > 0) {
