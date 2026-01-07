@@ -136,39 +136,48 @@ function calculateCost(kwh, dateStr) {
     return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
 }
 function drawCostChart(homeData, avgByMonth) {
-    // 1. Safety Check: If community data is missing, stop to prevent crashing other tabs
+    // 1. Safety Check: If data is missing, stop.
     if (!homeData || !avgByMonth) return;
 
     // 2. Filter Data: Only keep months where the Home has usage > 0
     const allMonths = Object.keys(homeData).filter(m => m !== "dataid");
     const validMonths = allMonths.filter(m => Number(homeData[m]) > 0);
 
+    // If no valid data, clear the chart area safely
     if (validMonths.length === 0) {
-        document.getElementById('monthlyCostChart').innerHTML = "No valid data to display.";
+        const chartDiv = document.getElementById('costChart');
+        if (chartDiv) chartDiv.innerHTML = "No valid data to display.";
         return;
     }
 
     // 3. Calculate Costs
     const costValues = validMonths.map(m => calculateCost(Number(homeData[m]), m));
-    const commValues = validMonths.map(m => calculateCost(avgByMonth[m], m));
+    
+    // Safety check for community data: ensure the month exists in avgByMonth
+    const commValues = validMonths.map(m => {
+        const val = avgByMonth[m] !== undefined ? avgByMonth[m] : 0;
+        return calculateCost(val, m);
+    });
 
     // 4. Calculate Averages for Legend
     const getAvg = (arr) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "0.00";
     const homeLegend = `Home ${homeData.dataid} (Avg: $${getAvg(costValues)})`;
     const commLegend = `Community Avg (Avg: $${getAvg(commValues)})`;
 
-    // 5. Trace 1: Home (Black Line + Dots + Text Labels)
+    // 5. Trace 1: Home (Blue Solid Line + Dots + Text Labels)
+    // You requested Blue in your screenshot example, but Black in previous turn. 
+    // I will use the Blue from your screenshot (image_03895f.png) as it matches the "Home" style better.
     const traceHome = {
         x: validMonths,
         y: costValues,
         type: 'scatter',
         mode: 'lines+markers+text',
-        text: costValues.map(v => '$' + Math.round(v)), // Labels: "$150"
+        text: costValues.map(v => '$' + Math.round(v)),
         textposition: 'top center',
         name: homeLegend,
-        line: { color: 'black', width: 2 }, 
-        marker: { size: 8, color: 'black', symbol: 'circle' },
-        textfont: { family: 'Arial', size: 12, color: 'black', weight: 'bold' }
+        line: { color: '#1f77b4', width: 2 }, // Standard Blue
+        marker: { size: 8, color: '#1f77b4', symbol: 'circle' },
+        textfont: { family: 'Arial', size: 12, color: '#1f77b4', weight: 'bold' }
     };
 
     // 6. Trace 2: Community (Red Dotted Line, No Labels)
@@ -181,10 +190,10 @@ function drawCostChart(homeData, avgByMonth) {
         line: { color: 'red', width: 2, dash: 'dot' }
     };
 
-    // 7. Layout: Academic/Journal Style
+    // 7. Layout: Clean Research Style
     const layout = {
         title: { text: 'Estimated Monthly Energy Cost', font: { family: 'Times New Roman', size: 24 } },
-        template: 'simple_white', // clean white background
+        template: 'simple_white',
         yaxis: { title: 'Cost ($)', showgrid: true, gridcolor: '#eee' },
         xaxis: { title: '', showgrid: false },
         legend: { x: 1, y: 1.1, xanchor: 'right', orientation: 'h' },
@@ -192,7 +201,8 @@ function drawCostChart(homeData, avgByMonth) {
         hovermode: 'x unified'
     };
 
-    Plotly.newPlot('monthlyCostChart', [traceHome, traceAvg], layout, {responsive: true});
+    // FIX: Target 'costChart' (Tab 3) instead of 'monthlyCostChart'
+    Plotly.newPlot('costChart', [traceHome, traceAvg], layout, {responsive: true});
 }
 //通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
@@ -234,7 +244,12 @@ function safePlot(divId, data, layout) {
         }
       });
 // Populate cost tab dropdown
-const homeSelectCost = document.getElementById("homeSelectCost");
+// --- CODE FOR COST SELECT (Tab 3) ---
+    const homeSelectCost = document.getElementById("homeSelectCost");
+    
+    // Clear existing options first to avoid duplicates if re-run
+    homeSelectCost.innerHTML = ""; 
+
     data.forEach(d => {
         const opt = document.createElement("option");
         opt.value = d.dataid;
@@ -242,17 +257,18 @@ const homeSelectCost = document.getElementById("homeSelectCost");
         homeSelectCost.appendChild(opt);
     });
 
-    // 1. LISTENER FIX: Pass avgByMonth here
+    // LISTENER: Pass 'avgByMonth' as the second argument
     homeSelectCost.addEventListener("change", function() {
         const selected = data.find(d => d.dataid == this.value);
         drawCostChart(selected, avgByMonth); 
     });
 
-    // 2. INITIAL LOAD FIX: Pass avgByMonth here
+    // INITIAL LOAD: Pass 'avgByMonth' as the second argument
     if (data.length > 0) {
-        // Use 'bldg' from URL if available, otherwise first home
+        // Use 'bldg' global var or fallback to first
         const initialHome = data.find(d => d.dataid == bldg) || data[0];
         homeSelectCost.value = initialHome.dataid;
+        
         drawCostChart(initialHome, avgByMonth);
     }
 // Initial draw for the first home
