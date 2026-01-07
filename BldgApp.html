@@ -193,7 +193,7 @@ const homeSelectCost = document.getElementById("homeSelectCost");
     data.forEach(d => {
         const opt = document.createElement("option");
         opt.value = d.dataid;
-        opt.textContent = "Home " + d.dataid;
+        opt.textContent = d.dataid;
         homeSelectCost.appendChild(opt);
     });
     homeSelectCost.addEventListener("change", function() {
