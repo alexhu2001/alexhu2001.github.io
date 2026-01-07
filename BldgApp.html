@@ -99,11 +99,18 @@
       return new Date(s);
     }
 // === Energy Cost Calculator (Atlanta version) ===
-function calculateCost(kwh, yearMonth) {
-    if (!kwh || kwh <= 0) return null;
+function calculateCost(kwh, dateStr) {
+    if (!kwh || kwh <= 0) return 0;
 
-    const [year, month] = yearMonth.split('-').map(Number);
-    const numDays = new Date(year, month, 0).getDate();
+    // FIX: Use standard Date parsing to handle "MM/DD/YYYY" (slashes) or "YYYY-MM-DD"
+    const dateObj = new Date(dateStr);
+    
+    // Safety check if date is invalid
+    if (isNaN(dateObj.getTime())) return 0;
+
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1; // JS months are 0-11, we need 1-12
+    const numDays = new Date(year, month, 0).getDate(); // Get last day of the specific month
 
     const basicCharge = 0.4603 * numDays;
     const isSummer = [6, 7, 8, 9].includes(month);
@@ -128,13 +135,18 @@ function calculateCost(kwh, yearMonth) {
 
     return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
 }
+
 function drawCostChart(homeData) {
     const months = Object.keys(homeData).filter(m => m !== "dataid");
-    const kwhValues = months.map(m => Number(homeData[m]));
-    const costValues = months.map((kwh, i) => calculateCost(kwh, months[i]));
+    
+    // FIX: Map strictly to values first, then calculate
+    const costValues = months.map(m => {
+        const kwh = Number(homeData[m]); // Extract the number explicitly
+        return calculateCost(kwh, m);    // Pass number and date string
+    });
 
     const trace = {
-        x: months,
+        x: months, // Plotly handles date strings automatically
         y: costValues,
         type: 'bar',
         marker: { color: '#4a90e2' },
@@ -148,7 +160,6 @@ function drawCostChart(homeData) {
 
     Plotly.newPlot('costChart', [trace], layout);
 }
-
 //通用绘图函数：无数据则隐藏，有数据则绘制
 function safePlot(divId, data, layout) {
   const div = document.getElementById(divId);
