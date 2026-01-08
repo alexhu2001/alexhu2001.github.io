@@ -67,35 +67,7 @@
     <p>These cost estimates are based on Georgia Power’s standard residential rates. The calculation includes the basic service fee, energy charges, and required city and state fees. This gives families a simple way to understand what their electricity use might cost each month.
     <label for="homeSelectCost">Select Home:</label>
     <select id="homeSelectCost"></select>
-<div id="costChart"></div> 
-    <hr style="margin-top: 40px; border-top: 1px solid #ddd;">
-    <h2 style="margin-top: 20px;">Targeted Savings Calculator</h2>
-    <p style="max-width: 800px; color: #555;">
-        Adjust the sliders to simulate reducing your usage in specific categories. 
-        This tool uses your home's <strong>seasonal patterns</strong> (Summer, Winter, Spring, Fall) 
-        to calculate a highly accurate estimated savings on your average monthly bill.
-    </p>
-    <div class="savings-dashboard" style="display: flex; flex-wrap: wrap; gap: 30px; margin-top: 20px;">
-        <div class="controls-card" style="flex: 1; min-width: 300px; background: #f8f9fa; padding: 25px; border-radius: 8px; border: 1px solid #e9ecef;">
-            <h3 style="margin-top: 0; font-size: 1.1em; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px;">
-                Reduce Usage By...
-            </h3>
-            <div id="sliderContainer">
-                <p>Loading home data...</p>
-            </div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button onclick="resetSliders()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    Reset All
-                </button>
-            </div>
-        </div>
-        <div class="results-card" style="flex: 1.5; min-width: 400px; display: flex; flex-direction: column;">
-            <div id="savingsResultChart" style="height: 350px;"></div>
-            <div id="savingsBigNumber" style="text-align: center; margin-top: 10px; padding: 15px; background: #d4edda; border-radius: 8px; color: #155724;">
-                Estimated Monthly Savings: <strong>$0.00</strong>
-            </div>
-        </div>
-    </div>
+    <div id="costChart"></div>
 </div>
 <!-- Info tab -->
 <div id="Info" class="tabcontent">
@@ -110,344 +82,624 @@
   <div id="cloudChart"></div>
   <div id="solarChart"></div>
 </div>
-<script>
-    // --- 1. Global Helpers & Setup ---
+  <script>
     const params = new URLSearchParams(window.location.search);
     let bldg = params.get("bldg") || "7352";
-
     function parseHeaderDate(s) {
-        const parts = s.split("/");
-        if (parts.length === 3) {
-            const [m, d, y] = parts.map(p => parseInt(p, 10));
-            return new Date(y, m - 1, d);
-        }
-        return new Date(s);
+      const parts = s.split("/");
+      if (parts.length === 3) {
+        const [m, d, y] = parts.map(p => parseInt(p, 10));
+        return new Date(y, m - 1, d);
+      }
+      return new Date(s);
     }
+// === Energy Cost Calculator (Atlanta version) ===
+function calculateCost(kwh, dateStr) {
+    if (!kwh || kwh <= 0) return 0;
 
-    function calculateCost(kwh, dateStr) {
-        if (!kwh || kwh <= 0) return 0;
-        const dateObj = new Date(dateStr);
-        if (isNaN(dateObj.getTime())) return 0;
+    // FIX: Use standard Date parsing to handle "MM/DD/YYYY" (slashes) or "YYYY-MM-DD"
+    const dateObj = new Date(dateStr);
+    
+    // Safety check if date is invalid
+    if (isNaN(dateObj.getTime())) return 0;
 
-        const year = dateObj.getFullYear();
-        const month = dateObj.getMonth() + 1;
-        const numDays = new Date(year, month, 0).getDate();
-        const basicCharge = 0.4603 * numDays;
-        const isSummer = [6, 7, 8, 9].includes(month);
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1; // JS months are 0-11, we need 1-12
+    const numDays = new Date(year, month, 0).getDate(); // Get last day of the specific month
 
-        let energyCharge = 0;
-        if (isSummer) {
-            if (kwh <= 650) energyCharge = kwh * 0.086;
-            else if (kwh <= 1000) energyCharge = (650 * 0.086) + ((kwh - 650) * 0.143);
-            else energyCharge = (650 * 0.086) + (350 * 0.143) + ((kwh - 1000) * 0.148);
+    const basicCharge = 0.4603 * numDays;
+    const isSummer = [6, 7, 8, 9].includes(month);
+
+    let energyCharge = 0;
+    if (isSummer) {
+        if (kwh <= 650) {
+            energyCharge = kwh * 0.086;
+        } else if (kwh <= 1000) {
+            energyCharge = (650 * 0.086) + ((kwh - 650) * 0.143);
         } else {
-            energyCharge = kwh * 0.081;
+            energyCharge = (650 * 0.086) + (350 * 0.143) + ((kwh - 1000) * 0.148);
         }
-
-        const subtotal = basicCharge + energyCharge;
-        const eccr = kwh * 0.0145;
-        const mff = (subtotal + eccr) * 0.030674;
-        const salesTax = (subtotal + eccr + mff) * 0.089;
-        return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
+    } else {
+        energyCharge = kwh * 0.081;
     }
 
-    function safePlot(divId, data, layout) {
-        const div = document.getElementById(divId);
-        div.style.display = "block";
-        div.innerHTML = "";
-        if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
-            div.style.display = "none";
-        } else {
-            Plotly.newPlot(divId, data, layout, {responsive: true});
+    const subtotal = basicCharge + energyCharge;
+    const eccr = kwh * 0.0145;
+    const mff = (subtotal + eccr) * 0.030674;
+    const salesTax = (subtotal + eccr + mff) * 0.089;
+
+    return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
+}
+function drawCostChart(homeData, avgByMonth) {
+    // 1. Safety Check: If data is missing, stop.
+    if (!homeData || !avgByMonth) return;
+
+    // 2. Filter Data: Only keep months where the Home has usage > 0
+    const allMonths = Object.keys(homeData).filter(m => m !== "dataid");
+    const validMonths = allMonths.filter(m => Number(homeData[m]) > 0);
+
+    // If no valid data, clear the chart area safely
+    if (validMonths.length === 0) {
+        const chartDiv = document.getElementById('costChart');
+        if (chartDiv) chartDiv.innerHTML = "No valid data to display.";
+        return;
+    }
+
+    // 3. Calculate Costs
+    const costValues = validMonths.map(m => calculateCost(Number(homeData[m]), m));
+    
+    // Safety check for community data: ensure the month exists in avgByMonth
+    const commValues = validMonths.map(m => {
+        const val = avgByMonth[m] !== undefined ? avgByMonth[m] : 0;
+        return calculateCost(val, m);
+    });
+
+    // 4. Calculate Averages for Legend
+    const getAvg = (arr) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "0.00";
+    const homeLegend = `Home ${homeData.dataid} (Avg: $${getAvg(costValues)})`;
+    const commLegend = `Community Avg (Avg: $${getAvg(commValues)})`;
+
+    // 5. Trace 1: Home (Blue Solid Line + Dots + Text Labels)
+    // You requested Blue in your screenshot example, but Black in previous turn. 
+    // I will use the Blue from your screenshot (image_03895f.png) as it matches the "Home" style better.
+    const traceHome = {
+        x: validMonths,
+        y: costValues,
+        type: 'scatter',
+        mode: 'lines+markers+text',
+        text: costValues.map(v => '$' + Math.round(v)),
+        textposition: 'top center',
+        name: homeLegend,
+        line: { color: '#1f77b4', width: 2 }, // Standard Blue
+        marker: { size: 8, color: '#1f77b4', symbol: 'circle' },
+        textfont: { family: 'Arial', size: 12, color: '#1f77b4', weight: 'bold' }
+    };
+
+    // 6. Trace 2: Community (Red Dotted Line, No Labels)
+    const traceAvg = {
+        x: validMonths,
+        y: commValues,
+        type: 'scatter',
+        mode: 'lines',
+        name: commLegend,
+        line: { color: 'red', width: 2, dash: 'dot' }
+    };
+
+    // 7. Layout: Clean Research Style
+    const layout = {
+        title: { text: 'Estimated Monthly Energy Cost', font: { family: 'Times New Roman', size: 24 } },
+        template: 'simple_white',
+        yaxis: { title: 'Cost ($)', showgrid: true, gridcolor: '#eee' },
+        xaxis: { title: '', showgrid: false },
+        legend: { x: 1, y: 1.1, xanchor: 'right', orientation: 'h' },
+        margin: { t: 80, l: 60, r: 40, b: 60 },
+        hovermode: 'x unified'
+    };
+
+    // FIX: Target 'costChart' (Tab 3) instead of 'monthlyCostChart'
+    Plotly.newPlot('costChart', [traceHome, traceAvg], layout, {responsive: true});
+}
+//通用绘图函数：无数据则隐藏，有数据则绘制
+function safePlot(divId, data, layout) {
+  const div = document.getElementById(divId);
+  // Always reset visibility before checking
+  div.style.display = "block";
+  div.innerHTML = ""; // clear any old content
+  if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
+    div.style.display = "none";   // hide if no data
+  } else {
+    Plotly.newPlot(divId, data, layout, {responsive:true});
+  }
+}
+    d3.csv("MonthlyEnergy_28days.csv").then(function(data) {
+      const headers = data.columns;
+      const dateCols = headers.slice(1);
+      // Compute average for each month across all homes
+      const avgByMonth = {};
+      dateCols.forEach(col => {
+        let vals = data
+          .map(row => {
+            const v = row[col];
+            return (v && v.trim() !== "") ? +v : null;
+          })
+          .filter(v => v !== null && !isNaN(v));
+        if (vals.length > 0) {
+          avgByMonth[col] = d3.mean(vals);
         }
-    }
+      });   
+      // Populate dropdown
+      const selectEl = document.getElementById("homeSelect");
+      data.forEach(row => {
+        const id = row["dataid"];
+        if (id) {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = id;
+          selectEl.appendChild(opt);
+        }
+      });
+// Populate cost tab dropdown
+// --- CODE FOR COST SELECT (Tab 3) ---
+    const homeSelectCost = document.getElementById("homeSelectCost");
+    
+    // Clear existing options first to avoid duplicates if re-run
+    homeSelectCost.innerHTML = ""; 
 
-    // --- 2. Independent Chart Loaders (Hourly, DayOfWeek, Info, MonthlyCost) ---
-    function drawHourlyChart(homeId) {
-        d3.csv("HourlyEnergy.csv").then(rows => {
-            const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
-            const hours = filtered.map(r => +r.hour);
-            const values = filtered.map(r => +r.grid);
-            
-            // Community Avg
-            const grouped = d3.nest().key(d => +d.hour).rollup(v => d3.mean(v, d => +d.grid)).entries(rows);
-            const avgHours = grouped.map(d => d.key);
-            const avgValues = grouped.map(d => d.value);
+    data.forEach(d => {
+        const opt = document.createElement("option");
+        opt.value = d.dataid;
+        opt.textContent = d.dataid;
+        homeSelectCost.appendChild(opt);
+    });
 
-            safePlot("hourlyChart", [
-                { x: hours, y: values, type: "scatter", mode: "lines+markers", text: values.map(v => v.toFixed(1) + " kWh"), textposition: "top center", line: { color: "#1f77b4", width: 2 }, name: "Home " + homeId },
-                { x: avgHours, y: avgValues, type: "scatter", mode: "lines", line: { color: "orange", dash: "dot" }, name: "Community Average" }
-            ], { title: "Hourly Energy Use (24 Hours)", xaxis: { title: "Hour", range: [0, 23] }, yaxis: { title: "kWh" } });
-        });
-    }
+    // LISTENER: Pass 'avgByMonth' as the second argument
+    homeSelectCost.addEventListener("change", function() {
+        const selected = data.find(d => d.dataid == this.value);
+        drawCostChart(selected, avgByMonth); 
+    });
 
-    function drawDayOfWeekChart(homeId) {
-        d3.csv("DayOfWeek.csv").then(rows => {
-            const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
-            const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-            const days = filtered.map(r => dayNames[+r.day_of_week]);
-            const values = filtered.map(r => +r.grid);
-            
-            const grouped = d3.nest().key(d => +d.day_of_week).rollup(v => d3.mean(v, d => +d.grid)).entries(rows);
-            const avgValues = grouped.map(d => d.value);
-
-            safePlot("dayOfWeekChart", [
-                { x: dayNames, y: values, type: "bar", text: values.map(v => v.toFixed(1)), textposition: "outside", marker: { color: "#2ca02c" }, name: "Home " + homeId },
-                { x: dayNames, y: avgValues, type: "bar", text: avgValues.map(v => v.toFixed(1)), textposition: "outside", marker: { color: "orange" }, name: "Community Average" }
-            ], { title: "Average Daily Use by Day of Week", barmode: "group", yaxis: { title: "kWh" } });
-        });
-    }
-
-    function drawHomeInfo(homeId) {
-        d3.csv("PropertyData.csv").then(rows => {
-            const row = rows.find(r => Number(r["dataid"]) === Number(homeId));
-            const card = document.getElementById("homeInfoCard");
-            if (!row) { card.innerHTML = "No info available."; return; }
-            
-            const infoItems = [
-                { icon: "🏠", label: "Exterior Wall", value: row["Exterior Wall"] },
-                { icon: "📅", label: "Year Built", value: row["Year Built"] },
-                { icon: "📐", label: "Sq Ft", value: row["Res Sq Ft"] },
-                { icon: "🛏️", label: "Bedrooms", value: row["Bedrooms"] },
-                { icon: "🔥", label: "Heating", value: row["Heating System"] },
-                { icon: "💲", label: "Value", value: row["Assessed Value"] }
-            ];
-            card.innerHTML = infoItems.map(i => `<div class="icon">${i.icon}</div><div><span class="label">${i.label}:</span> ${i.value}</div>`).join("");
-        });
-    }
-
-    function drawMonthlyCostChart(homeId) { // Tab 2 Line Chart
-        d3.csv("EnergyCost.csv").then(data => {
-            const row = data.find(r => r.dataid === homeId);
-            if(!row) return;
-            const months = Object.keys(row).filter(k => k !== "dataid");
-            const values = months.map(m => +row[m]);
-            const avgValues = months.map(m => d3.mean(data.map(r => +r[m]).filter(v => !isNaN(v))));
-
-            safePlot("monthlyCostChart", [
-                { x: months, y: values, type: "scatter", mode: "lines+markers", name: "Home " + homeId, marker: { color: "#1f77b4" } },
-                { x: months, y: avgValues, type: "scatter", mode: "lines", name: "Community Avg", line: { color: "orange" } }
-            ], { title: "Monthly Cost Trend", yaxis: { title: "$" } });
-        });
-    }
-
-    // --- 3. Main Data Block (Monthly + Seasonal + Savings) ---
-    d3.csv("MonthlyEnergy_28days.csv").then(function(monthlyData) {
-        const headers = monthlyData.columns;
-        const dateCols = headers.slice(1);
+    // INITIAL LOAD: Pass 'avgByMonth' as the second argument
+    if (data.length > 0) {
+        // Use 'bldg' global var or fallback to first
+        const initialHome = data.find(d => d.dataid == bldg) || data[0];
+        homeSelectCost.value = initialHome.dataid;
         
-        // Compute Community Average
-        const avgByMonth = {};
+        drawCostChart(initialHome, avgByMonth);
+    }
+// Initial draw for the first home
+if (data.length > 0) {
+    const first = data[0];
+    homeSelectCost.value = first.dataid;
+    drawCostChart(first);
+}
+      selectEl.value = bldg;
+      function drawChart(homeId) {
+        const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
+        if (!row) {
+          document.getElementById("msg").innerText = "No data for " + homeId;
+          return;
+        }
+        const x = [], y = [];
         dateCols.forEach(col => {
-            const vals = monthlyData.map(r => +r[col]).filter(v => v > 0);
-            if (vals.length) avgByMonth[col] = d3.mean(vals);
+          const val = row[col];
+          if (val && val.trim() !== "") {
+            x.push(parseHeaderDate(col));
+            y.push(+val);
+          }
         });
-
-        // Populate Dropdowns
-        const selectEl = document.getElementById("homeSelect");
-        const selectCost = document.getElementById("homeSelectCost");
-        monthlyData.forEach(d => {
-            if(d.dataid) {
-                selectEl.add(new Option(d.dataid, d.dataid));
-                selectCost.add(new Option(d.dataid, d.dataid));
-            }
-        });
-
-        // Function: Draw Main Usage Chart (Tab 2)
-        function drawMainChart(homeId) {
-            const row = monthlyData.find(d => d.dataid == homeId);
-            if (!row) { document.getElementById("msg").innerText = "No data"; return; }
-            
-            const x = [], y = [];
-            dateCols.forEach(col => { if(row[col]) { x.push(parseHeaderDate(col)); y.push(+row[col]); } });
-            
-            const avgX = [], avgY = [];
-            dateCols.forEach(col => { if(avgByMonth[col]) { avgX.push(parseHeaderDate(col)); avgY.push(avgByMonth[col]); } });
-
-            safePlot("chart", [
-                { x: x, y: y, type: "scatter", mode: "lines+markers", name: "Home " + homeId },
-                { x: avgX, y: avgY, type: "scatter", mode: "lines", name: "Community Avg", line: { color: "red", dash: "dot" } }
-            ], { title: "Total Energy Consumption", xaxis: {type: "date"}, yaxis: {title: "kWh"}, legend: {x: 1, y: 1} });
+        if (x.length === 0) {
+          document.getElementById("msg").innerText = "No values found for Home " + homeId;
+          safePlot("chart", [], {});   // hide chart properly
+          return;
         }
-
-        // Function: Draw Cost Chart (Tab 3)
-        function drawCostChart(homeId) {
-            const row = monthlyData.find(d => d.dataid == homeId);
-            if (!row) return;
-            
-            const months = dateCols.filter(m => +row[m] > 0);
-            const costVals = months.map(m => calculateCost(+row[m], m));
-            const commVals = months.map(m => calculateCost(avgByMonth[m], m));
-            
-            safePlot("costChart", [
-                { x: months, y: costVals, type: "scatter", mode: "lines+markers+text", text: costVals.map(v=>"$"+Math.round(v)), textposition:"top center", name: "Home "+homeId, line:{color:"#1f77b4"} },
-                { x: months, y: commVals, type: "scatter", mode: "lines", name: "Comm. Avg", line:{color:"red", dash:"dot"} }
-            ], { title: "Estimated Monthly Energy Cost", template: "simple_white", yaxis: {title:"$"} });
-        }
-
-        // --- Seasonal & Savings Logic ---
-        Promise.all([
-            d3.csv("Category_SummerDailyAvg.csv"),
-            d3.csv("Category_WinterDailyAvg.csv"),
-            d3.csv("Category_SpringDailyAvg.csv"),
-            d3.csv("Category_FallDailyAvg.csv")
-        ]).then(([summer, winter, spring, fall]) => {
-            
-            // Helper: Season Charts
-            function prepPercent(row, dataset) {
-                if (!row) return [];
-                const cats = ["HVAC","Water_Heating_Pumps","Kitchen_Refrigeration","Laundry","Lighting_Plugs_Rooms"];
-                const vals = cats.map(k => +row[k] || 0);
-                const total = d3.sum(vals);
-                return total ? cats.map((k, i) => ({ cat: k, val: (vals[i]/total)*100 })) : [];
-            }
-
-            // Function: Draw Season Charts (Tab 2)
-            function drawSeasonCharts(homeId) {
-                const sRow = summer.find(d => d.dataid == homeId);
-                const wRow = winter.find(d => d.dataid == homeId);
-                const sData = prepPercent(sRow, summer);
-                const wData = prepPercent(wRow, winter);
-                
-                safePlot("summerChart", [{x: sData.map(d=>d.cat), y: sData.map(d=>d.val), type:"bar", text:sData.map(d=>d.val.toFixed(1)+"%")}], {title:"Summer Breakdown", yaxis:{title:"%"}});
-                safePlot("winterChart", [{x: wData.map(d=>d.cat), y: wData.map(d=>d.val), type:"bar", text:wData.map(d=>d.val.toFixed(1)+"%")}], {title:"Winter Breakdown", yaxis:{title:"%"}});
-            }
-
-            // Function: Savings Calculator (Tab 3)
-            function drawSavingsCalculator(homeId) {
-                const seasons = { 'summer': summer, 'winter': winter, 'spring': spring, 'fall': fall };
-                const getSeasonName = m => [6,7,8].includes(m)?'summer':[12,1,2].includes(m)?'winter':[3,4,5].includes(m)?'spring':'fall';
-                const cats = ["HVAC", "Water_Heating_Pumps", "Kitchen_Refrigeration", "Laundry", "Lighting_Plugs_Rooms"];
-                const prettyCats = {"HVAC":"HVAC", "Water_Heating_Pumps":"Water Heating", "Kitchen_Refrigeration":"Kitchen", "Laundry":"Laundry", "Lighting_Plugs_Rooms":"Lights"};
-
-                // 1. Calc Baseline
-                const homeRow = monthlyData.find(d => d.dataid == homeId);
-                if(!homeRow) return;
-                
-                const baselineCosts = { "HVAC":0, "Water_Heating_Pumps":0, "Kitchen_Refrigeration":0, "Laundry":0, "Lighting_Plugs_Rooms":0 };
-                let totalBill = 0, count = 0;
-
-                dateCols.forEach(dateStr => {
-                    const kwh = +homeRow[dateStr];
-                    if(kwh > 0) {
-                        const bill = calculateCost(kwh, dateStr);
-                        const dObj = new Date(dateStr);
-                        if(!isNaN(dObj.getTime())) {
-                            const sName = getSeasonName(dObj.getMonth()+1);
-                            const sRow = seasons[sName].find(d => d.dataid == homeId);
-                            if(sRow) {
-                                const pcts = prepPercent(sRow); // Returns array of objects {cat, val}
-                                const pctMap = {}; pcts.forEach(p => pctMap[p.cat] = p.val/100);
-                                cats.forEach(c => baselineCosts[c] += bill * (pctMap[c]||0));
-                                totalBill += bill;
-                                count++;
-                            }
-                        }
-                    }
-                });
-
-                if(count === 0) { document.getElementById("sliderContainer").innerHTML = "No Data"; return; }
-                cats.forEach(c => baselineCosts[c] /= count);
-                const avgBill = totalBill / count;
-
-                // 2. Render Sliders
-                const container = document.getElementById("sliderContainer");
-                container.innerHTML = "";
-                const sliderState = {}; cats.forEach(c => sliderState[c] = 0);
-
-                cats.forEach(cat => {
-                    const div = document.createElement("div");
-                    div.innerHTML = `<div style="display:flex; justify-content:space-between"><b>${prettyCats[cat]}</b><span id="lbl_${cat}" style="color:blue">0%</span></div>`;
-                    const input = document.createElement("input");
-                    input.type = "range"; input.min = 0; input.max = 50; input.value = 0; input.style.width="100%"; input.className="savings-slider";
-                    input.oninput = function() {
-                        document.getElementById("lbl_"+cat).innerText = "-" + this.value + "%";
-                        sliderState[cat] = this.value / 100;
-                        updateCalc();
-                    };
-                    div.appendChild(input); container.appendChild(div);
-                });
-
-                // 3. Update Chart
-                function updateCalc() {
-                    let newBill = 0;
-                    cats.forEach(c => {
-                        const cost = baselineCosts[c];
-                        const saved = cost * sliderState[c];
-                        newBill += (cost - saved);
-                    });
-                    const saved = avgBill - newBill;
-                    document.getElementById("savingsBigNumber").innerHTML = `Estimated Savings: <b>$${saved.toFixed(2)}</b>`;
-                    safePlot("savingsResultChart", [
-                        { x: ["Avg Bill"], y: [avgBill], type: "bar", name: "Current" },
-                        { x: ["Avg Bill"], y: [newBill], type: "bar", name: "Projected" }
-                    ], { title: "Bill Comparison", barmode: "group", showlegend:true });
-                }
-                updateCalc();
-            }
-            window.resetSliders = function() { document.querySelectorAll(".savings-slider").forEach(s => { s.value=0; s.dispatchEvent(new Event('input')); }); };
-
-            // --- MASTER UPDATE FUNCTION ---
-            window.updateAllCharts = function(id) {
-                // Sync Dropdowns
-                selectEl.value = id;
-                selectCost.value = id;
-                
-                // Tab 2
-                drawMainChart(id);
-                drawMonthlyCostChart(id);
-                drawSeasonCharts(id);
-                drawHourlyChart(id);
-                drawDayOfWeekChart(id);
-                
-                // Tab 1
-                drawHomeInfo(id);
-                
-                // Tab 3
-                drawCostChart(id);
-                drawSavingsCalculator(id);
-            };
-
-            // Listeners
-            selectEl.addEventListener("change", (e) => updateAllCharts(e.target.value));
-            selectCost.addEventListener("change", (e) => updateAllCharts(e.target.value));
-
-            // Initial Load
-            updateAllCharts(bldg);
-
-        }); // End Promise.all
-    }); // End d3.csv
-
-    // --- 4. Tab & Forecast Logic ---
-    function openTab(evt, tabName) {
-        document.querySelectorAll(".tabcontent").forEach(el => el.style.display = "none");
-        document.querySelectorAll(".tablinks").forEach(el => el.classList.remove("active"));
-        document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.classList.add("active");
-    }
-    document.getElementById("defaultOpen").click();
-
-    function loadForecast() {
-        fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,apparent_temperature,cloudcover,shortwave_radiation&timezone=America/New_York")
-        .then(res => res.json()).then(data => {
-            const times = data.hourly.time;
-            const temp = data.hourly.temperature_2m;
-            const appTemp = data.hourly.apparent_temperature;
-            const cloud = data.hourly.cloudcover;
-            const solar = data.hourly.shortwave_radiation;
-
-            const cz = { type: "rect", xref: "x", yref: "y", x0: times[0], x1: times[times.length-1], y0: 20, y1: 26, fillcolor: "rgba(0,200,0,0.1)", line: {width:0}, layer: "below" };
-            
-            safePlot("tempChart", [
-                { x: times, y: temp, name: "Air Temp", line: {color: "red"} },
-                { x: times, y: appTemp, name: "Feels Like", line: {color: "orange", dash: "dot"} }
-            ], { title: "Temperature Forecast", shapes: [cz] });
-
-            safePlot("cloudChart", [{ x: times, y: cloud, fill: "tozeroy", name: "Cloud %" }], { title: "Cloud Cover" });
-            safePlot("solarChart", [{ x: times, y: solar, fill: "tozeroy", name: "Solar Rad", line: {color: "gold"} }], { title: "Solar Radiation" });
+        const avgX = [], avgY = [];
+        dateCols.forEach(col => {
+          if (avgByMonth[col] !== undefined) {
+            avgX.push(parseHeaderDate(col));
+            avgY.push(avgByMonth[col]);
+          }
         });
+        const maxValHome = Math.max(...y);
+        const maxValAvg = avgY.length > 0 ? Math.max(...avgY) : 0;
+        const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
+
+        // --- Compute averages ---
+        const homeAvg = d3.mean(y).toFixed(1);
+        const commAvg = avgY.length > 0 ? d3.mean(avgY).toFixed(1) : "N/A";  
+        safePlot("chart", [
+          {
+            x: x,
+            y: y,
+            type: "scatter",
+            mode: "lines+markers",
+            name: "Home " + homeId
+          },
+          {
+            x: avgX,
+            y: avgY,
+            type: "scatter",
+            mode: "lines",
+            name: "Community Average",
+            line: { color: "red", dash: "dot" }
+          }
+        ], {
+          title: "Total Energy Consumption by Month for Home " + homeId,
+          xaxis: { title: "Month", type: "date" },
+          yaxis: { title: "kWh", range: [0, yMax] },
+  // ⬇️ Add these lines inside the layout object
+  legend: {
+    x: 1.02,
+    y: 1,
+    xanchor: "left",
+    yanchor: "top",
+    orientation: "v"
+  },
+  margin: { r: 180, t: 50, b: 50, l: 60 },
+  annotations: [
+    {
+      xref: "paper",
+      yref: "paper",
+      x: 1.02,
+      y: 0.92,
+      text: "Home Avg: " + homeAvg + " kWh/month",
+      showarrow: false,
+      align: "left"
+    },
+    {
+      xref: "paper",
+      yref: "paper",
+      x: 1.02,
+      y: 0.86,
+      text: "Community Avg: " + commAvg + " kWh/month",
+      showarrow: false,
+      align: "left"
+    }]
+        });
+      }
+      // Initial draw
+      drawChart(bldg);
+      document.getElementById("msg").innerText = "";
+      // Dropdown change
+      selectEl.addEventListener("change", () => {
+        const newId = selectEl.value;
+        const url = new URL(window.location);
+        url.searchParams.set("bldg", newId);
+        window.history.replaceState({}, "", url);
+        drawChart(newId);
+      });
+<!-- ===== Winter/Summer Comparison Code START ===== -->
+Promise.all([
+  d3.csv("Category_SummerDailyAvg.csv"),
+  d3.csv("Category_WinterDailyAvg.csv")
+]).then(([summer, winter]) => {
+  function avgRow(data) {
+    const result = {};
+    data.columns.slice(1).forEach(col => {
+      const vals = data.map(r => +r[col]).filter(v => v > 0);
+      if (vals.length > 0) result[col] = d3.mean(vals);
+    });
+    return result;
+  }
+  const sAvg = avgRow(summer);
+  const wAvg = avgRow(winter);
+function prepPercent(row, avg, labelHome, labelAvg) {
+  if (!row) return [];
+  const entries = Object.keys(row)
+    .filter(k => k !== "dataid" && +row[k] > 0)
+    .map(k => ({ cat: k, val: +row[k] }));
+  const total = d3.sum(entries, d => d.val);
+  const homeData = entries.map(d => ({
+    cat: d.cat,
+    val: d.val / total * 100,   // percentage
+    raw: d.val,                 // actual kWh
+    type: labelHome
+  }));
+  const avgEntries = Object.keys(avg)
+    .filter(k => avg[k] > 0)
+    .map(k => ({ cat: k, val: avg[k] }));
+  const avgTotal = d3.sum(avgEntries, d => d.val);
+  const avgData = avgEntries.map(d => ({
+    cat: d.cat,
+    val: d.val / avgTotal * 100,
+    raw: d.val,
+    type: labelAvg
+  }));
+  return [...homeData, ...avgData];
+}
+function makeTraces(data) {
+  const types = [...new Set(data.map(d => d.type))];
+  return types.map(t => {
+    const filtered = data.filter(d => d.type === t);
+    return {
+      x: filtered.map(d => d.cat),
+      y: filtered.map(d => d.val),
+      name: t,
+      type: "bar",
+      text: filtered.map(d => d.val.toFixed(1) + "%"),
+//      text: filtered.map(d => d.val.toFixed(1) + "% (" + d.raw.toFixed(1) + " kWh)"),
+      textposition: "outside"
+    };
+  });
+}
+// Keep hourly at top-level inside this Promise block
+function drawHourlyChart(homeId) {
+  Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
+    if (err) {
+      console.error("Error loading HourlyEnergy.csv:", err);
+      return;
     }
-    document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
+    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
+    const hours = filtered.map(r => +r.hour);
+    const values = filtered.map(r => +r.grid);
+// --- Community average across all homes ---
+const grouped = d3.nest()
+  .key(d => +d.hour)
+  .rollup(v => d3.mean(v, d => +d.grid))
+  .entries(rows);
+const avgHours = grouped.map(d => d.key);
+const avgValues = grouped.map(d => d.value);
+const traceAvg = {
+  x: avgHours, y: avgValues, type: "scatter", mode: "lines",
+  line: { color: "orange", dash: "dot" },
+  name: "Community Average"
+};
+    const trace = {
+  x: hours,
+  y: values,
+  type: "scatter",
+  mode: "lines+markers",   // add text labels
+  text: values.map(v => v.toFixed(1) + " kWh"), // label each point
+  textposition: "top center",
+  line: { color: "#1f77b4", width: 2 },
+  marker: { size: 6 },
+  name: "Home " + homeId
+};
+    const layout = {
+      title: "Hourly Energy Use for Home " + homeId,
+      xaxis: {title: "Hour of Day", tickmode: "linear", dtick: 1, range: [0, 23]},
+      yaxis: {title: "Energy Use (kWh)"}
+    };
+    safePlot("hourlyChart", [trace, traceAvg], layout);
+  });
+}
+// ===== Day of Week chart =====
+function drawDayOfWeekChart(homeId) {
+  Plotly.d3.csv("DayOfWeek.csv", function(err, rows) {
+    if (err) {
+      console.error("Error loading DayOfWeek.csv:", err);
+      return;
+    }
+    // Filter for the selected home
+    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
+    // Map day numbers to names
+    const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const days = filtered.map(r => dayNames[+r.day_of_week]);
+    const values = filtered.map(r => +r.grid);
+    // --- Community average across all homes ---
+    const grouped = d3.nest()
+      .key(d => +d.day_of_week)
+      .rollup(v => d3.mean(v, d => +d.grid))
+      .entries(rows);
+    const avgDays = grouped.map(d => dayNames[d.key]);
+    const avgValues = grouped.map(d => d.value);
+    // --- Traces ---
+    const traceHome = {
+      x: days,
+      y: values,
+      type: "bar",
+      text: values.map(v => v.toFixed(1) + " kWh"), // labels above bars
+      textposition: "outside",
+      marker: { color: "#2ca02c" },
+      name: "Home " + homeId
+    };
+    const traceAvg = {
+      x: avgDays,
+      y: avgValues,
+      type: "bar",
+      text: avgValues.map(v => v.toFixed(1) + " kWh"),
+      textposition: "outside",
+      marker: { color: "orange" },
+      name: "Community Average"
+    };
+    const layout = {
+      barmode: "group",
+      title: "Average Daily Energy Use by Day of Week for Home " + homeId,
+      xaxis: { title: "Day of Week" },
+      yaxis: { title: "Energy Use (kWh)" }
+    };
+    safePlot("dayOfWeekChart", [traceHome, traceAvg], layout);
+  });
+}
+// ===== Home Info card =====
+function drawHomeInfo(homeId) {
+  d3.csv("PropertyData.csv").then(rows => {
+    const row = rows.find(r => Number(r["dataid"]) === Number(homeId));
+    if (!row) {
+      document.getElementById("homeInfoCard").innerHTML = "No info available.";
+      return;
+    }
+    const infoItems = [
+      { icon: "🏠", label: "Exterior Wall", value: row["Exterior Wall"] },
+      { icon: "📅", label: "Year Built", value: row["Year Built"] },
+      { icon: "📐", label: "Sq Ft", value: row["Res Sq Ft"] },
+      { icon: "🛏️", label: "Bedrooms", value: row["Bedrooms"] },
+      { icon: "🔥", label: "Heating System", value: row["Heating System"] },
+      { icon: "💨", label: "Heat", value: row["Heat"] },
+      { icon: "📊", label: "Grade Factor", value: row["Grade Factor"] },
+      { icon: "💲", label: "Assessed Value", value: row["Assessed Value"] }
+    ];
+    const html = infoItems.map(item => `
+      <div class="icon">${item.icon}</div>
+      <div><span class="label">${item.label}:</span> ${item.value}</div>
+    `).join("");
+    document.getElementById("homeInfoCard").innerHTML = html;
+  });
+}
+function drawMonthlyCostChart(homeId) {
+  d3.csv("EnergyCost.csv").then(costData => {
+    const row = costData.find(r => r.dataid === homeId);
+    if (!row) {
+      document.getElementById("monthlyCostChart").innerHTML = "No cost data available.";
+      return;
+    }
+    const months = Object.keys(row).filter(k => k !== "dataid");
+    const values = months.map(m => row[m] ? +row[m] : null);
+    // 社区平均
+const avgValues = months.map(m => {
+  const nums = costData
+    .map(r => r[m] ? +r[m] : NaN)   // convert only if not empty
+    .filter(v => !isNaN(v));        // drop NaN values
+  return nums.length ? d3.mean(nums) : null;
+    });
+    const traceHome = {
+      x: months,
+      y: values,
+      type: "scatter",
+      mode: "lines+markers",
+      name: "Home " + homeId,
+      marker: { color: "#1f77b4", width: 2 }
+    };
+    const traceAvg = {
+      x: months,
+      y: avgValues,
+      type: "scatter",
+      mode: "lines+markers",
+      name: "Community Average",
+      line: { color: "orange", width: 2 }
+    };
+    const layout = {
+      barmode: "group",
+      yaxis: { title: "Monthly Cost ($)" },
+      margin: { t: 30 }
+    };
+    Plotly.newPlot("monthlyCostChart", [traceHome, traceAvg], layout, {responsive: true});
+  });
+}
+  // The ONLY seasonal function — do not redefine it later
+  function drawSeasonCharts(homeId) {
+    document.getElementById("msg").innerText = "";
+    const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
+    const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
+    const summerData = sRow ? prepPercent(sRow, sAvg, "Home " + homeId, "Community Average") : [];
+    const winterData = wRow ? prepPercent(wRow, wAvg, "Home " + homeId, "Community Average") : [];
+    const maxValS = d3.max(summerData, d => d.val) || 0;
+    const maxValW = d3.max(winterData, d => d.val) || 0;
+    safePlot("summerChart", makeTraces(summerData), {
+      barmode: "group",
+      title: "Summer (June-Aug) Energy Usage Distribution by Category for Home " + homeId,
+      yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] },
+      xaxis: { title: "Category" }
+    });
+    safePlot("winterChart", makeTraces(winterData), {
+      barmode: "group",
+      title: "Winter (Dec-Feb) Energy Usage Distribution by Category for Home " + homeId,
+      yaxis: { title: "% of total household energy use", range: [0, maxValW * 1.2] },
+      xaxis: { title: "Category" }
+    });
+  }
+  // Hookups
+document.getElementById("homeSelect").addEventListener("change", e => {
+  drawMonthlyCostChart(e.target.value);
+  drawSeasonCharts(e.target.value);
+  drawHourlyChart(e.target.value);
+  drawDayOfWeekChart(e.target.value);
+  drawHomeInfo(e.target.value);
+});
+
+if (data.find(d => d.dataid === bldg)) {
+  drawMonthlyCostChart(bldg);
+  drawSeasonCharts(bldg);
+  drawHourlyChart(bldg);
+  drawDayOfWeekChart(bldg);
+  drawHomeInfo(bldg);
+}
+
+}).catch(err => {
+  document.getElementById("msg").innerText = "Error loading CSV: " + err;
+  console.error(err);
+});
+    }).catch(err => {
+      document.getElementById("msg").innerText = "Error loading CSV: " + err;
+      console.error(err);
+    });
+// Tab switching
+function openTab(evt, tabName) {
+  document.querySelectorAll(".tabcontent").forEach(el => el.style.display = "none");
+  document.querySelectorAll(".tablinks").forEach(el => el.classList.remove("active"));
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.classList.add("active");
+}
+// Open default tab
+document.getElementById("defaultOpen").click();
+// ===== Forecast charts =====
+function loadForecast() {
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,apparent_temperature,cloudcover,shortwave_radiation&timezone=America/New_York")
+    .then(res => res.json())
+    .then(data => {
+      const times = data.hourly.time;
+      const temp = data.hourly.temperature_2m;
+      const appTemp = data.hourly.apparent_temperature;
+      const cloud = data.hourly.cloudcover;
+      const solar = data.hourly.shortwave_radiation;
+
+      // --- Temperature vs Apparent Temperature with Comfort Zone ---
+      const traceTemp = {
+        x: times, y: temp, type: "scatter", mode: "lines",
+        name: "Air Temp (°C)", line: { color: "red" }
+      };
+      const traceApp = {
+        x: times, y: appTemp, type: "scatter", mode: "lines",
+        name: "Apparent Temp (°C)", line: { color: "orange", dash: "dot" }
+      };
+      const comfortZone = {
+        type: "rect", xref: "x", yref: "y",
+        x0: times[0], x1: times[times.length - 1],
+        y0: 20, y1: 26,
+        fillcolor: "rgba(0,200,0,0.1)", line: { width: 0 }, layer: "below"
+      };
+      Plotly.newPlot("tempChart", [traceTemp, traceApp], {
+        title: "Hourly Temperature vs. Apparent Temperature",
+        xaxis: { title: "Time" },
+        yaxis: { title: "°C" },
+        hovermode: "x unified",
+        shapes: [comfortZone],
+        annotations: [{
+          xref: "paper", yref: "y", x: 1.02, y: 23,
+          text: "Comfort Zone (68°F/20°C to 79°F/26°C)", showarrow: false,
+          font: { color: "green" }
+        }]
+      });
+
+      // --- Cloud Cover as Area Chart ---
+      const traceCloud = {
+        x: times, y: cloud, type: "scatter", mode: "lines",
+        name: "Cloud Cover (%)", line: { color: "gray" },
+        fill: "tozeroy", fillcolor: "rgba(128,128,128,0.3)"
+      };
+      Plotly.newPlot("cloudChart", [traceCloud], {
+        title: "Hourly Cloud Cover",
+        xaxis: { title: "Time" },
+        yaxis: { title: "%" },
+        hovermode: "x unified"
+      });
+
+      // --- Solar Radiation with Filled Curve ---
+      const traceSolar = {
+        x: times, y: solar, type: "scatter", mode: "lines",
+        name: "Solar Radiation (W/m²)", line: { color: "gold" },
+        fill: "tozeroy", fillcolor: "rgba(255,215,0,0.3)"
+      };
+      Plotly.newPlot("solarChart", [traceSolar], {
+        title: "Hourly Solar Radiation",
+        xaxis: { title: "Time" },
+        yaxis: { title: "W/m²" },
+        hovermode: "x unified"
+      });
+    }); // <-- closes the .then chain properly
+}
+
+// Hook forecast loader to Forecast tab button
+document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
 </script>
 </body>
 </html>
