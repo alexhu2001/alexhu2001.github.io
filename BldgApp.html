@@ -650,7 +650,128 @@ if (data.find(d => d.dataid === bldg)) {
   drawDayOfWeekChart(bldg);
   drawHomeInfo(bldg);
 }
+// ============================================================
+    //  NEW: Savings Calculator Logic (Appended Safely)
+    // ============================================================
+    
+    // 1. Load Seasonal Data
+    Promise.all([
+        d3.csv("Category_SummerDailyAvg.csv"),
+        d3.csv("Category_WinterDailyAvg.csv"),
+        d3.csv("Category_SpringDailyAvg.csv"),
+        d3.csv("Category_FallDailyAvg.csv")
+    ]).then(([summer, winter, spring, fall]) => {
+        
+        const seasons = { 'summer': summer, 'winter': winter, 'spring': spring, 'fall': fall };
+        const getSeasonName = m => [6,7,8].includes(m)?'summer':[12,1,2].includes(m)?'winter':[3,4,5].includes(m)?'spring':'fall';
+        
+        // Helper: Calculate Category Breakdown (%)
+        function getSeasonPcts(homeId, seasonName) {
+            const row = seasons[seasonName].find(d => d.dataid == homeId);
+            if (!row) return null;
+            const cats = ["HVAC","Water_Heating_Pumps","Kitchen_Refrigeration","Laundry","Lighting_Plugs_Rooms"];
+            let total = 0;
+            const vals = {};
+            cats.forEach(c => {
+                const v = parseFloat(row[c]) || 0;
+                vals[c] = v;
+                total += v;
+            });
+            if (total === 0) return null;
+            const pcts = {};
+            cats.forEach(c => pcts[c] = vals[c] / total);
+            return pcts;
+        }
 
+        // Main Draw Function
+        window.drawSavingsCalculator = function(homeId) {
+            const container = document.getElementById("sliderContainer");
+            if (!container) return;
+            container.innerHTML = "";
+            
+            const homeRow = data.find(d => d.dataid == homeId);
+            if (!homeRow) { container.innerHTML = "No data found."; return; }
+
+            const cats = ["HVAC", "Water_Heating_Pumps", "Kitchen_Refrigeration", "Laundry", "Lighting_Plugs_Rooms"];
+            const prettyCats = { "HVAC":"Heating & AC", "Water_Heating_Pumps":"Water Heating", "Kitchen_Refrigeration":"Kitchen & Fridge", "Laundry":"Laundry", "Lighting_Plugs_Rooms":"Lights & Plugs" };
+            const sliderState = {}; 
+            cats.forEach(c => sliderState[c] = 0);
+
+            // A. Create Sliders
+            cats.forEach(cat => {
+                const div = document.createElement("div");
+                div.style.marginBottom = "15px";
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-weight:bold; font-size:0.9em;">${prettyCats[cat]}</span>
+                        <span id="lbl_${cat}" style="color:#007bff; font-weight:bold;">0%</span>
+                    </div>`;
+                const input = document.createElement("input");
+                input.type = "range"; input.min = 0; input.max = 50; input.step = 5; input.value = 0;
+                input.className = "savings-slider"; input.style.width = "100%";
+                input.oninput = function() {
+                    document.getElementById("lbl_"+cat).innerText = "-" + this.value + "%";
+                    sliderState[cat] = this.value / 100;
+                    updateProjectedChart();
+                };
+                div.appendChild(input); container.appendChild(div);
+            });
+
+            // B. Chart Update Function
+            function updateProjectedChart() {
+                const months = dateCols.filter(m => homeRow[m] && +homeRow[m] > 0);
+                const currCosts = [], projCosts = [];
+                let totalSavings = 0;
+
+                months.forEach(m => {
+                    const kwh = parseFloat(homeRow[m]);
+                    const currBill = calculateCost(kwh, m);
+                    const dObj = new Date(m);
+                    const season = getSeasonName(dObj.getMonth() + 1);
+                    const pcts = getSeasonPcts(homeId, season);
+
+                    let savedKwh = 0;
+                    if (pcts) {
+                        cats.forEach(c => {
+                            const catKwh = kwh * pcts[c];
+                            savedKwh += catKwh * sliderState[c];
+                        });
+                    }
+                    const newBill = calculateCost(kwh - savedKwh, m);
+                    currCosts.push(currBill);
+                    projCosts.push(newBill);
+                    totalSavings += (currBill - newBill);
+                });
+
+                document.getElementById("savingsBigNumber").innerHTML = `Estimated Total Savings: <strong>$${totalSavings.toFixed(2)}</strong>`;
+                
+                Plotly.react("savingsResultChart", [
+                    { x: months, y: currCosts, type: "scatter", mode: "lines+markers", name: "Current", line:{color:"#343a40", width:2} },
+                    { x: months, y: projCosts, type: "scatter", mode: "lines+markers", name: "Projected", line:{color:"#28a745", width:2, dash:"dot"}, fill:"tonexty" }
+                ], { 
+                    title: "Projected Bill Savings", yaxis: {title:"Cost ($)"}, 
+                    template: "simple_white", margin: {t:40, b:40, l:60, r:20}, legend: {orientation:"h", y:1.1}
+                }, {displayModeBar: false});
+            }
+            updateProjectedChart();
+        };
+
+        // Reset Button Logic
+        window.resetSliders = function() {
+            document.querySelectorAll(".savings-slider").forEach(s => { s.value=0; s.dispatchEvent(new Event('input')); });
+        };
+
+        // Initialize Calculator
+        if (typeof bldg !== 'undefined') drawSavingsCalculator(bldg);
+
+        // Hook into Cost Dropdown
+        const costSelect = document.getElementById("homeSelectCost");
+        if(costSelect) {
+            costSelect.addEventListener("change", function() {
+                drawSavingsCalculator(this.value);
+            });
+        }
+    });
 }).catch(err => {
   document.getElementById("msg").innerText = "Error loading CSV: " + err;
   console.error(err);
