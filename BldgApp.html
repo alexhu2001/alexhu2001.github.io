@@ -120,8 +120,49 @@
   <div id="solarChart"></div>
 </div>
   <script>
+// 1. Define Global ID Mapping
+    const ID_MAP = {
+        "2005": "1", "2462": "2", "2542": "3", "2933": "4", "3485": "5",
+        "3841": "6", "4399": "7", "5265": "8", "7246": "9", "7352": "10",
+        "7624": "11", "9765": "12", "9783": "13", "10323": "14", "10532": "15",
+        "10686": "16", "11744": "17", "6820": "18", "10458": "19"
+    };
+
+    // 2. Handle URL Params (Auto-convert requested ID)
     const params = new URLSearchParams(window.location.search);
-    let bldg = params.get("bldg") || "7352";
+    let rawBldg = params.get("bldg") || "7352";
+    // If the URL has an old ID (e.g. 7352), convert it to new (e.g. 10). Otherwise keep as is.
+    let bldg = ID_MAP[rawBldg] || rawBldg; 
+
+    // 3. Monkey Patch d3.csv (Standard v5) - Intercepts all d3.csv() calls
+    const originalD3Csv = d3.csv;
+    d3.csv = function(url, ...args) {
+        return originalD3Csv(url, ...args).then(data => {
+            data.forEach(row => {
+                if (row.dataid && ID_MAP[row.dataid]) {
+                    row.dataid = ID_MAP[row.dataid];
+                }
+            });
+            return data;
+        });
+    };
+
+    // 4. Monkey Patch Plotly.d3.csv (Used in your Hourly/DayOfWeek charts)
+    if (window.Plotly && Plotly.d3) {
+        const originalPlotlyCsv = Plotly.d3.csv;
+        Plotly.d3.csv = function(url, callback) {
+            originalPlotlyCsv(url, function(err, rows) {
+                if (rows) {
+                    rows.forEach(row => {
+                        if (row.dataid && ID_MAP[row.dataid]) {
+                            row.dataid = ID_MAP[row.dataid];
+                        }
+                    });
+                }
+                callback(err, rows);
+            });
+        };
+    }
     function parseHeaderDate(s) {
       const parts = s.split("/");
       if (parts.length === 3) {
