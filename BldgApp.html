@@ -120,7 +120,7 @@
   <div id="solarChart"></div>
 </div>
   <script>
-// 1. Define Global ID Mapping
+    // 1. Define Global ID Mapping (Old ID -> New ID)
     const ID_MAP = {
         "2005": "1", "2462": "2", "2542": "3", "2933": "4", "3485": "5",
         "3841": "6", "4399": "7", "5265": "8", "7246": "9", "7352": "10",
@@ -128,26 +128,35 @@
         "10686": "16", "11744": "17", "6820": "18", "10458": "19"
     };
 
-    // 2. Handle URL Params (Auto-convert requested ID)
+    // 2. Handle URL Params & Defaults
     const params = new URLSearchParams(window.location.search);
-    let rawBldg = params.get("bldg") || "7352";
-    // If the URL has an old ID (e.g. 7352), convert it to new (e.g. 10). Otherwise keep as is.
-    let bldg = ID_MAP[rawBldg] || rawBldg; 
+    let rawBldg = params.get("bldg") || "7352"; 
+    // Automatically convert old default ID (7352) to new ID (10)
+    let bldg = ID_MAP[rawBldg] || rawBldg;
+    if (bldg === "7352") bldg = "10"; 
 
-    // 3. Monkey Patch d3.csv (Standard v5) - Intercepts all d3.csv() calls
+    // 3. Monkey Patch d3.csv - Intercept, Transform, AND SORT
     const originalD3Csv = d3.csv;
     d3.csv = function(url, ...args) {
         return originalD3Csv(url, ...args).then(data => {
+            // A. Transform IDs
             data.forEach(row => {
                 if (row.dataid && ID_MAP[row.dataid]) {
                     row.dataid = ID_MAP[row.dataid];
                 }
             });
+            
+            // B. Sort Data Numerically by ID (Fixes the 7,8,18,9 order)
+            // This ensures Home 1 comes before Home 2, etc.
+            data.sort((a, b) => {
+                return Number(a.dataid) - Number(b.dataid);
+            });
+
             return data;
         });
     };
 
-    // 4. Monkey Patch Plotly.d3.csv (Used in your Hourly/DayOfWeek charts)
+    // 4. Monkey Patch Plotly.d3.csv (for compatibility)
     if (window.Plotly && Plotly.d3) {
         const originalPlotlyCsv = Plotly.d3.csv;
         Plotly.d3.csv = function(url, callback) {
@@ -158,6 +167,8 @@
                             row.dataid = ID_MAP[row.dataid];
                         }
                     });
+                    // Sort Plotly data too
+                    rows.sort((a, b) => Number(a.dataid) - Number(b.dataid));
                 }
                 callback(err, rows);
             });
