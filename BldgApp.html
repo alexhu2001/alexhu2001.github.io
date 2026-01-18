@@ -832,12 +832,20 @@ if (data.find(d => d.dataid === bldg)) {
       document.getElementById("msg").innerText = "Error loading CSV: " + err;
       console.error(err);
     });
-// Tab switching
+// Tab switching with Auto-Resize Fix
 function openTab(evt, tabName) {
+  // 1. Standard Tab Logic
   document.querySelectorAll(".tabcontent").forEach(el => el.style.display = "none");
   document.querySelectorAll(".tablinks").forEach(el => el.classList.remove("active"));
   document.getElementById(tabName).style.display = "block";
   evt.currentTarget.classList.add("active");
+
+  // 2. FORCE RESIZE for all charts in the newly visible tab
+  // This fixes the "squished" chart issue
+  const visibleCharts = document.getElementById(tabName).querySelectorAll('.js-plotly-plot');
+  visibleCharts.forEach(chartDiv => {
+    Plotly.Plots.resize(chartDiv);
+  });
 }
 // Open default tab
 document.getElementById("defaultOpen").click();
@@ -892,7 +900,6 @@ function loadForecast() {
         yaxis: { title: "%" },
         hovermode: "x unified"
       });
-
       // --- Solar Radiation with Filled Curve ---
       const traceSolar = {
         x: times, y: solar, type: "scatter", mode: "lines",
@@ -907,9 +914,12 @@ function loadForecast() {
       });
     }); // <-- closes the .then chain properly
 }
-
 // Hook forecast loader to Forecast tab button
 document.querySelector("button[onclick*='Forecast']").addEventListener("click", loadForecast);
+    // Auto-resize charts when window size changes
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.js-plotly-plot').forEach(chart => Plotly.Plots.resize(chart));
+});
 </script>
 </body>
 </html>
