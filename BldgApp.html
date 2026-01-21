@@ -114,7 +114,12 @@
 </div>
 <!-- Forecast tab -->
 <div id="Forecast" class="tabcontent">
-  <h2>7-Day Weather Forecast</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>7-Day Weather Forecast</h2>
+    <button id="weatherToggleBtn" onclick="toggleWeatherUnit()" style="padding:8px 16px; cursor:pointer; font-weight:bold; border-radius:4px; border:1px solid #ccc;">
+      Switch to °C
+    </button>
+  </div>
   <div id="tempChart"></div>
   <div id="cloudChart"></div>
   <div id="solarChart"></div>
