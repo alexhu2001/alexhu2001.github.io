@@ -133,52 +133,48 @@
         "10686": "16", "11744": "17", "6820": "18", "10458": "19"
     };
 
-    // === 2. MONKEY PATCH D3 (The Master Fix) ===
-    // This intercepts ALL data loading to fix IDs and Dates globally
+    // === 2. MASTER DATA FIXER (Intercepts Data Loading) ===
     const originalD3Csv = d3.csv;
     d3.csv = function(url, ...args) {
         return originalD3Csv(url, ...args).then(data => {
             
-            // A. Fix Date Headers (Solves the "Nov 30" Issue)
-            // We append " 12:00" to date columns so they are treated as Noon, not Midnight.
+            // A. FIX DATES: Convert "12/1/2025" -> "2025-12-01"
+            // This format prevents "Nov 30" shifts AND hides "12:00"
             if (data.columns && data.columns.length > 1) {
-                // Assume columns after index 0 are dates (standard for your files)
                 const oldCols = [...data.columns];
                 const newCols = data.columns.map((col, i) => {
-                    // if it contains a slash or dash, assume it's a date
-                    if (i > 0 && (col.includes('/') || col.includes('-'))) {
-                        return col + " 12:00"; // Force Noon
+                    // Detect date headers (e.g. "1/1/2025")
+                    if (i > 0 && col.includes('/') && col.split('/').length === 3) {
+                        const [m, d, y] = col.split('/');
+                        // Return clean ISO format: YYYY-MM-DD
+                        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                     }
                     return col;
                 });
 
-                // Apply new headers to every row
+                // Update data keys to match new ISO headers
                 data.forEach(row => {
                     oldCols.forEach((oldKey, i) => {
                         if (oldKey !== newCols[i]) {
-                            row[newCols[i]] = row[oldKey]; // Move data to new key
-                            delete row[oldKey];            // Remove old key
+                            row[newCols[i]] = row[oldKey]; // Move data
+                            delete row[oldKey];            // Delete old key
                         }
                     });
                 });
-                data.columns = newCols; // Update column list
+                data.columns = newCols; 
             }
 
-            // B. Fix IDs (Old -> New)
+            // B. FIX IDS: Map Old -> New and Sort
             data.forEach(row => {
-                if (row.dataid && ID_MAP[row.dataid]) {
-                    row.dataid = ID_MAP[row.dataid];
-                }
+                if (row.dataid && ID_MAP[row.dataid]) row.dataid = ID_MAP[row.dataid];
             });
-
-            // C. Sort Numerically (1, 2, 3...)
             data.sort((a, b) => Number(a.dataid) - Number(b.dataid));
 
             return data;
         });
     };
 
-    // Patch Plotly's D3 too (for charts that use it)
+    // Apply same fix to Plotly's internal D3 (used by Hourly charts)
     if (window.Plotly && Plotly.d3) {
         const originalPlotlyCsv = Plotly.d3.csv;
         Plotly.d3.csv = function(url, callback) {
@@ -200,10 +196,11 @@
     let bldg = ID_MAP[rawBldg] || rawBldg;
     if (bldg === "7352") bldg = "10"; 
 
-    // Robust Date Parser (Handles the new " 12:00" format)
+    // Simplified Date Parser (Works with our new ISO Strings)
     function parseHeaderDate(s) {
-        // Just let the browser parse the "Date + 12:00" string we created
-        return new Date(s); 
+        // Since we already converted headers to "2025-12-01", 
+        // we can just return the string. Plotly loves ISO strings.
+        return s; 
     }
 // === Energy Cost Calculator (Atlanta version) ===
 function calculateCost(kwh, dateStr) {
