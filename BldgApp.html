@@ -345,13 +345,6 @@ function safePlot(divId, data, layout) {
         opt.textContent = d.dataid;
         homeSelectCost.appendChild(opt);
     });
-
-    // LISTENER: Pass 'avgByMonth' as the second argument
-    homeSelectCost.addEventListener("change", function() {
-        const selected = data.find(d => d.dataid == this.value);
-        drawCostChart(selected, avgByMonth); 
-    });
-
     // INITIAL LOAD: Pass 'avgByMonth' as the second argument
     if (data.length > 0) {
         // Use 'bldg' global var or fallback to first
@@ -691,21 +684,49 @@ const avgValues = months.map(m => {
       xaxis: { title: "Category" }
     });
   }
-  // Hookups
-document.getElementById("homeSelect").addEventListener("change", e => {
-  drawMonthlyCostChart(e.target.value);
-  drawSeasonCharts(e.target.value);
-  drawHourlyChart(e.target.value);
-  drawDayOfWeekChart(e.target.value);
-  drawHomeInfo(e.target.value);
-});
+// ============================================================
+//  UNIFIED MASTER UPDATE HANDLER (Syncs Tabs 1, 2, 3, 4)
+// ============================================================
+const usageSelect = document.getElementById("homeSelect");
+const costSelect = document.getElementById("homeSelectCost");
 
+function handleGlobalChange(newId) {
+    // 1. Sync Visuals (Dropdowns & URL)
+    if (usageSelect.value !== newId) usageSelect.value = newId;
+    if (costSelect.value !== newId) costSelect.value = newId;
+    
+    const url = new URL(window.location);
+    url.searchParams.set("bldg", newId);
+    window.history.replaceState({}, "", url);
+
+    // 2. Update TAB 2 (Energy Usage)
+    drawChart(newId);
+    drawMonthlyCostChart(newId);
+    drawSeasonCharts(newId);
+    drawHourlyChart(newId);
+    drawDayOfWeekChart(newId);
+
+    // 3. Update TAB 1 (Info)
+    drawHomeInfo(newId);
+
+    // 4. Update TAB 3 (Cost & Savings)
+    // Note: Cost chart needs the specific row object, not just ID
+    const selectedData = data.find(d => d.dataid == newId);
+    if (selectedData) {
+        drawCostChart(selectedData, avgByMonth);
+        if (window.drawSavingsCalculator) {
+            window.drawSavingsCalculator(newId);
+        }
+    }
+}
+
+// Attach the Master Handler to BOTH dropdowns
+usageSelect.addEventListener("change", (e) => handleGlobalChange(e.target.value));
+costSelect.addEventListener("change", (e) => handleGlobalChange(e.target.value));
+
+// Initial Load (Draws everything at once)
 if (data.find(d => d.dataid === bldg)) {
-  drawMonthlyCostChart(bldg);
-  drawSeasonCharts(bldg);
-  drawHourlyChart(bldg);
-  drawDayOfWeekChart(bldg);
-  drawHomeInfo(bldg);
+    handleGlobalChange(bldg);
 }
 // ============================================================
     //  NEW: Savings Calculator Logic (Appended Safely)
