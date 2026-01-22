@@ -124,8 +124,8 @@
   <div id="cloudChart"></div>
   <div id="solarChart"></div>
 </div>
-  <script>
-    // 1. Define Global ID Mapping (Old ID -> New ID)
+<script>
+    // === 1. GLOBAL CONFIGURATION ===
     const ID_MAP = {
         "2005": "1", "2462": "2", "2542": "3", "2933": "4", "3485": "5",
         "3841": "6", "4399": "7", "5265": "8", "7246": "9", "7352": "10",
@@ -133,61 +133,77 @@
         "10686": "16", "11744": "17", "6820": "18", "10458": "19"
     };
 
-    // 2. Handle URL Params & Defaults
-    const params = new URLSearchParams(window.location.search);
-    let rawBldg = params.get("bldg") || "7352"; 
-    // Automatically convert old default ID (7352) to new ID (10)
-    let bldg = ID_MAP[rawBldg] || rawBldg;
-    if (bldg === "7352") bldg = "10"; 
-
-    // 3. Monkey Patch d3.csv - Intercept, Transform, AND SORT
+    // === 2. MONKEY PATCH D3 (The Master Fix) ===
+    // This intercepts ALL data loading to fix IDs and Dates globally
     const originalD3Csv = d3.csv;
     d3.csv = function(url, ...args) {
         return originalD3Csv(url, ...args).then(data => {
-            // A. Transform IDs
+            
+            // A. Fix Date Headers (Solves the "Nov 30" Issue)
+            // We append " 12:00" to date columns so they are treated as Noon, not Midnight.
+            if (data.columns && data.columns.length > 1) {
+                // Assume columns after index 0 are dates (standard for your files)
+                const oldCols = [...data.columns];
+                const newCols = data.columns.map((col, i) => {
+                    // if it contains a slash or dash, assume it's a date
+                    if (i > 0 && (col.includes('/') || col.includes('-'))) {
+                        return col + " 12:00"; // Force Noon
+                    }
+                    return col;
+                });
+
+                // Apply new headers to every row
+                data.forEach(row => {
+                    oldCols.forEach((oldKey, i) => {
+                        if (oldKey !== newCols[i]) {
+                            row[newCols[i]] = row[oldKey]; // Move data to new key
+                            delete row[oldKey];            // Remove old key
+                        }
+                    });
+                });
+                data.columns = newCols; // Update column list
+            }
+
+            // B. Fix IDs (Old -> New)
             data.forEach(row => {
                 if (row.dataid && ID_MAP[row.dataid]) {
                     row.dataid = ID_MAP[row.dataid];
                 }
             });
-            
-            // B. Sort Data Numerically by ID (Fixes the 7,8,18,9 order)
-            // This ensures Home 1 comes before Home 2, etc.
-            data.sort((a, b) => {
-                return Number(a.dataid) - Number(b.dataid);
-            });
+
+            // C. Sort Numerically (1, 2, 3...)
+            data.sort((a, b) => Number(a.dataid) - Number(b.dataid));
 
             return data;
         });
     };
 
-    // 4. Monkey Patch Plotly.d3.csv (for compatibility)
+    // Patch Plotly's D3 too (for charts that use it)
     if (window.Plotly && Plotly.d3) {
         const originalPlotlyCsv = Plotly.d3.csv;
         Plotly.d3.csv = function(url, callback) {
             originalPlotlyCsv(url, function(err, rows) {
                 if (rows) {
                     rows.forEach(row => {
-                        if (row.dataid && ID_MAP[row.dataid]) {
-                            row.dataid = ID_MAP[row.dataid];
-                        }
+                        if (row.dataid && ID_MAP[row.dataid]) row.dataid = ID_MAP[row.dataid];
                     });
-                    // Sort Plotly data too
                     rows.sort((a, b) => Number(a.dataid) - Number(b.dataid));
                 }
                 callback(err, rows);
             });
         };
     }
+
+    // === 3. SETUP & HELPERS ===
+    const params = new URLSearchParams(window.location.search);
+    let rawBldg = params.get("bldg") || "7352"; 
+    let bldg = ID_MAP[rawBldg] || rawBldg;
+    if (bldg === "7352") bldg = "10"; 
+
+    // Robust Date Parser (Handles the new " 12:00" format)
     function parseHeaderDate(s) {
-      const parts = s.split("/");
-      if (parts.length === 3) {
-        const [m, d, y] = parts.map(p => parseInt(p, 10));
-        // FIX: Set time to 12:00:00 (Noon)
-        // This prevents the date from shifting back to "Nov 30" due to timezone differences
-        return new Date(y, m - 1, d, 12, 0, 0);
-      }
-      return new Date(s);
+        // Just let the browser parse the "Date + 12:00" string we created
+        return new Date(s); 
     }
 // === Energy Cost Calculator (Atlanta version) ===
 function calculateCost(kwh, dateStr) {
