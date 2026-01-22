@@ -80,7 +80,7 @@
     <h2 style="margin-top: 20px;">Targeted Savings Calculator</h2>
     <p style="max-width: 800px; color: #555;">
         Adjust the sliders below to simulate reducing your usage in specific categories.
-        The chart below shows your <strong>projected monthly bill</strong> compared to your current bill.
+        The chart below shows your <strong>projected monthly bill</strong> compared to your actual bill.
     </p>
 
     <div class="savings-dashboard" style="display: flex; flex-wrap: wrap; gap: 30px; margin-top: 20px;">
@@ -809,10 +809,11 @@ if (data.find(d => d.dataid === bldg)) {
                 };
                 div.appendChild(input); container.appendChild(div);
             });
-
-            // B. Chart Update Function
+// B. Chart Update Function (Revised with Date Range)
             function updateProjectedChart() {
+                // Filter for valid months
                 const months = dateCols.filter(m => homeRow[m] && +homeRow[m] > 0);
+                
                 const currCosts = [], projCosts = [];
                 let totalSavings = 0;
 
@@ -836,8 +837,39 @@ if (data.find(d => d.dataid === bldg)) {
                     totalSavings += (currBill - newBill);
                 });
 
-                document.getElementById("savingsBigNumber").innerHTML = `Estimated Total Savings: <strong>$${totalSavings.toFixed(2)}</strong>`;
+                // --- NEW: Dynamic Range Text ---
+                const monthCount = months.length;
+                let rangeText = "";
                 
+                if (monthCount > 0) {
+                    // Sort months to ensure we get the correct Start/End
+                    // (Assuming ISO format YYYY-MM-DD from previous fix)
+                    months.sort(); 
+                    
+                    const formatDate = (dateStr) => {
+                        const d = new Date(dateStr);
+                        // Format: "May 2024"
+                        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    };
+                    
+                    const startStr = formatDate(months[0]);
+                    const endStr = formatDate(months[monthCount - 1]);
+                    rangeText = `Based on usage from ${startStr} – ${endStr}`;
+                }
+
+                // Update Green Bar with Context
+                const bigNum = document.getElementById("savingsBigNumber");
+                bigNum.innerHTML = `
+                    <div style="font-size:1.1em; margin-bottom:4px;">
+                        Estimated Savings <span style="font-weight:normal; font-size:0.9em;">(over ${monthCount} months)</span>: 
+                        <strong>$${totalSavings.toFixed(2)}</strong>
+                    </div>
+                    <div style="font-size:0.85em; font-weight:normal; opacity:0.85;">
+                        ${rangeText}
+                    </div>
+                `;
+                
+                // Update Chart
                 Plotly.react("savingsResultChart", [
                     { x: months, y: currCosts, type: "scatter", mode: "lines+markers", name: "Current", line:{color:"#343a40", width:2} },
                     { x: months, y: projCosts, type: "scatter", mode: "lines+markers", name: "Projected", line:{color:"#28a745", width:2, dash:"dot"}, fill:"tonexty" }
