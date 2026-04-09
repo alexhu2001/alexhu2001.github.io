@@ -1,181 +1,897 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<style>
-  .tab { overflow: hidden; border-bottom: 1px solid #ccc; }
-  .tab button { background: none; border: none; padding: 10px 16px; cursor: pointer; }
-  .tab button.active { background: #ccc; }
-  .tabcontent { display: none; padding: 16px; }
-  .info-card {
-  display: grid;
-  grid-template-columns: 40px auto;
-  gap: 10px 15px;
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  max-width: 400px;
-  background: #fafafa;
-  font-family: sans-serif;
-}
-.info-card .icon {
-  font-size: 1.2em;
-  text-align: center;
-}
-.info-card .label {
-  font-weight: bold;
-}
-</style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Energy Dashboard</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="https://d3js.org/d3.v5.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* =============================================
+     APPLE-INSPIRED DESIGN SYSTEM
+  ============================================= */
+  :root {
+    --bg-primary: #f5f5f7;
+    --bg-secondary: #ffffff;
+    --bg-card: rgba(255,255,255,0.78);
+    --bg-glass: rgba(255,255,255,0.6);
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --text-tertiary: #aeaeb2;
+    --accent-blue: #0071e3;
+    --accent-blue-light: #e8f1fb;
+    --accent-green: #34c759;
+    --accent-orange: #ff9f0a;
+    --accent-red: #ff3b30;
+    --border: rgba(0,0,0,0.08);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-md: 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-lg: 0 20px 60px rgba(0,0,0,0.13);
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 22px;
+    --font: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    --nav-height: 64px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(0,113,227,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(52,199,89,0.05) 0%, transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* =============================================
+     TOP NAV BAR
+  ============================================= */
+  .nav-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: var(--nav-height);
+    background: rgba(245,245,247,0.82);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    gap: 8px;
+    animation: slideDown 0.5s cubic-bezier(0.4,0,0.2,1) both;
+  }
+
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: auto;
+    text-decoration: none;
+  }
+
+  .nav-brand-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #0071e3 0%, #34c759 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,113,227,0.3);
+  }
+
+  .nav-brand-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  /* Tab buttons */
+  .tab-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 10px;
+    padding: 3px;
+  }
+
+  .tablinks {
+    background: transparent;
+    border: none;
+    padding: 7px 18px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    transition: var(--transition);
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .tablinks:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.5);
+  }
+
+  .tablinks.active {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* =============================================
+     PAGE CONTENT WRAPPER
+  ============================================= */
+  .tabcontent {
+    display: none;
+    padding: 40px 32px;
+    max-width: 1280px;
+    margin: 0 auto;
+    animation: fadeUp 0.4s cubic-bezier(0.4,0,0.2,1) both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* =============================================
+     SECTION HEADERS
+  ============================================= */
+  .section-header {
+    margin-bottom: 28px;
+  }
+
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .section-subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* =============================================
+     CARDS
+  ============================================= */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: var(--transition);
+    overflow: hidden;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+  }
+
+  .card-body {
+    padding: 28px;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: -0.1px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  /* =============================================
+     TOOLBAR (Select + Label)
+  ============================================= */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .home-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 36px 9px 14px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236e6e73' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    min-width: 140px;
+  }
+
+  .home-select:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
+  }
+
+  .home-select:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.18);
+  }
+
+  /* =============================================
+     CHART CONTAINERS
+  ============================================= */
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 24px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: var(--transition);
+  }
+
+  .chart-card:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .chart-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--accent-blue);
+    margin-bottom: 4px;
+  }
+
+  .chart-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 36px 0;
+  }
+
+  /* =============================================
+     ERROR MESSAGE
+  ============================================= */
+  #msg {
+    color: var(--accent-red);
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 8px;
+    min-height: 18px;
+  }
+
+  /* =============================================
+     INFO TAB — PROPERTY CARD
+  ============================================= */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 28px;
+  }
+
+  .info-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: var(--transition);
+    backdrop-filter: blur(12px);
+  }
+
+  .info-item:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--accent-blue-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .info-content {}
+  .info-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 3px;
+  }
+  .info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* About card */
+  .about-card {
+    background: linear-gradient(135deg, rgba(0,113,227,0.06) 0%, rgba(52,199,89,0.04) 100%);
+    border: 1px solid rgba(0,113,227,0.15);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    margin-bottom: 32px;
+  }
+
+  .about-card p {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  /* =============================================
+     COST TAB — SAVINGS DASHBOARD
+  ============================================= */
+  .savings-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 24px;
+    margin-top: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .savings-grid { grid-template-columns: 1fr; }
+  }
+
+  .controls-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .controls-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+    margin-bottom: 22px;
+  }
+
+  .slider-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 7px;
+  }
+
+  .slider-name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .slider-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-blue);
+    font-family: var(--font-mono);
+  }
+
+  .savings-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--accent-blue) 0%, var(--accent-blue) var(--val, 0%), rgba(0,0,0,0.1) var(--val, 0%), rgba(0,0,0,0.1) 100%);
+    outline: none;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .savings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-blue);
+    box-shadow: 0 2px 6px rgba(0,113,227,0.25);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .savings-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 10px rgba(0,113,227,0.35);
+  }
+
+  .reset-btn {
+    display: block;
+    width: 100%;
+    margin-top: 22px;
+    padding: 10px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    letter-spacing: -0.1px;
+  }
+
+  .reset-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: var(--accent-blue-light);
+  }
+
+  .results-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .savings-big-number {
+    margin-top: 16px;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, rgba(52,199,89,0.1), rgba(52,199,89,0.06));
+    border: 1px solid rgba(52,199,89,0.3);
+    border-radius: var(--radius-md);
+    color: #1a6b2e;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .savings-big-number strong {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    letter-spacing: -0.5px;
+  }
+
+  /* =============================================
+     FORECAST TAB
+  ============================================= */
+  .forecast-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+
+  .toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .toggle-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: var(--accent-blue-light);
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.1);
+  }
+
+  /* =============================================
+     STAGGER ANIMATION FOR CARDS
+  ============================================= */
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.10s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.20s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.30s; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .anim-fade { animation: fadeIn 0.45s cubic-bezier(0.4,0,0.2,1) both; }
+
+  /* =============================================
+     COST DESCRIPTION CARD
+  ============================================= */
+  .info-prose {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    max-width: 720px;
+    margin-bottom: 28px;
+  }
+
+  /* Loading indicator */
+  #sliderContainer p {
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  /* Plotly overrides */
+  .js-plotly-plot .plotly .modebar {
+    top: 8px !important;
+    right: 8px !important;
+  }
+
+  /* Responsive nav */
+  @media (max-width: 640px) {
+    .nav-bar { padding: 0 16px; gap: 6px; }
+    .tablinks { padding: 6px 10px; font-size: 12px; }
+    .tabcontent { padding: 24px 16px; }
+  }
+</style>
 </head>
 <body>
-<!-- Tab buttons -->
-<div class="tab">
-  <button class="tablinks" onclick="openTab(event, 'Info')">Info</button>
-  <button class="tablinks" onclick="openTab(event, 'Dashboard')" id="defaultOpen">Energy Usage</button>
-  <button class="tablinks" onclick="openTab(event, 'Cost')">Energy Cost Analysis</button>
-  <button class="tablinks" onclick="openTab(event, 'Forecast')">Weather Forecast</button>
-</div>
-<!-- Dashboard tab -->
+
+<!-- ===================== NAV BAR ===================== -->
+<nav class="nav-bar">
+  <div class="nav-brand">
+    <div class="nav-brand-icon">⚡</div>
+    <span class="nav-brand-text">EnergyIQ</span>
+  </div>
+  <div class="tab-nav">
+    <button class="tablinks" onclick="openTab(event, 'Info')">Info</button>
+    <button class="tablinks" onclick="openTab(event, 'Dashboard')" id="defaultOpen">Usage</button>
+    <button class="tablinks" onclick="openTab(event, 'Cost')">Cost</button>
+    <button class="tablinks" onclick="openTab(event, 'Forecast')">Forecast</button>
+  </div>
+</nav>
+
+<!-- ===================== DASHBOARD TAB ===================== -->
 <div id="Dashboard" class="tabcontent">
-  <h2 id="title">Energy Usage Analysis</h2>
-  <label for="homeSelect">Select Home:</label>
-  <select id="homeSelect"></select>
-  <div id="chart"></div>
-  <div id="msg" style="color:red;"></div>
-  <h2 id="titleCost">Monthly Energy Cost</h2>
-  <div id="monthlyCostChart"></div>
-  <!-- ===== Winter/Summer Comparison Section START ===== -->
-  <hr>
-  <h2 id="title2">Seasonal Energy Usage Breakdown by Category (%)</h2>
-  <div id="summerChart"></div>
-  <div id="winterChart"></div>
-  <!-- ===== Winter/Summer Comparison Section END ===== -->
-  <hr>
-  <h2 id="titleHourly">Hourly Energy Use (24 Hours)</h2>
-  <div id="hourlyChart"></div>
-  <hr>
-  <h2 id="titleDayOfWeek">Average Energy Use by Day of Week</h2>
-  <div id="dayOfWeekChart"></div>
+
+  <div class="section-header anim-fade">
+    <div class="section-eyebrow">Analytics</div>
+    <h1 class="section-title">Energy Usage</h1>
+    <p class="section-subtitle">Monthly consumption trends compared to your community.</p>
+  </div>
+
+  <div class="toolbar anim-fade stagger-1">
+    <span class="toolbar-label">Viewing Home</span>
+    <select id="homeSelect" class="home-select"></select>
+    <div id="msg"></div>
+  </div>
+
+  <div class="chart-card anim-fade stagger-2">
+    <div class="chart-label">Consumption</div>
+    <div class="chart-title">Monthly Energy Use</div>
+    <div id="chart"></div>
+  </div>
+
+  <div class="chart-card anim-fade stagger-3">
+    <div class="chart-label">Financials</div>
+    <div class="chart-title">Monthly Energy Cost</div>
+    <div id="monthlyCostChart"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-header anim-fade">
+    <div class="section-eyebrow">Seasonal Breakdown</div>
+    <h2 class="section-title">Usage by Category</h2>
+    <p class="section-subtitle">How energy is distributed across home systems each season.</p>
+  </div>
+
+  <div class="chart-card anim-fade stagger-1">
+    <div class="chart-label">Summer · Jun–Aug</div>
+    <div id="summerChart"></div>
+  </div>
+  <div class="chart-card anim-fade stagger-2">
+    <div class="chart-label">Winter · Dec–Feb</div>
+    <div id="winterChart"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section-header anim-fade">
+    <div class="section-eyebrow">Patterns</div>
+    <h2 class="section-title">Hourly &amp; Weekly Trends</h2>
+  </div>
+
+  <div class="chart-card anim-fade stagger-1">
+    <div class="chart-label">Daily Pattern</div>
+    <div class="chart-title">Hourly Energy Use (24 h)</div>
+    <div id="hourlyChart"></div>
+  </div>
+  <div class="chart-card anim-fade stagger-2">
+    <div class="chart-label">Weekly Pattern</div>
+    <div class="chart-title">Average Use by Day of Week</div>
+    <div id="dayOfWeekChart"></div>
+  </div>
 </div>
-<!-- ===== Energy Cost Tab ===== -->
+
+<!-- ===================== COST TAB ===================== -->
 <div id="Cost" class="tabcontent">
-    <h2>Estimated Monthly Energy Cost</h2>
-    <p style="max-width:800px;">
-        These cost estimates are based on Georgia Power’s standard residential rates. 
-        The calculation includes the basic service fee, energy charges, and required 
-        city and state fees. This gives families a simple way to understand what their 
-        electricity use might cost each month.
-    </p>
-    
-    <label for="homeSelectCost">Select Home:</label>
-    <select id="homeSelectCost"></select>
-    
+
+  <div class="section-header anim-fade">
+    <div class="section-eyebrow">Financial Analysis</div>
+    <h1 class="section-title">Energy Cost Analysis</h1>
+  </div>
+
+  <p class="info-prose anim-fade stagger-1">
+    Estimates based on Georgia Power's standard residential rates — including the basic service fee,
+    energy charges, and required city &amp; state fees — giving families a clear view of what their
+    electricity use costs each month.
+  </p>
+
+  <div class="toolbar anim-fade stagger-2">
+    <span class="toolbar-label">Viewing Home</span>
+    <select id="homeSelectCost" class="home-select"></select>
+  </div>
+
+  <div class="chart-card anim-fade stagger-3">
+    <div class="chart-label">Monthly Bill</div>
+    <div class="chart-title">Estimated Energy Cost</div>
     <div id="costChart"></div>
+  </div>
 
-    <hr style="margin-top: 40px; border-top: 1px solid #ddd;">
-    <h2 style="margin-top: 20px;">Targeted Savings Calculator</h2>
-    <p style="max-width: 800px; color: #555;">
-        Adjust the sliders below to simulate reducing your usage in specific categories.
-        The chart below shows your <strong>projected monthly bill</strong> compared to your actual bill.
-    </p>
+  <div class="divider"></div>
 
-    <div class="savings-dashboard" style="display: flex; flex-wrap: wrap; gap: 30px; margin-top: 20px;">
-        <div class="controls-card" style="flex: 1; min-width: 300px; background: #f8f9fa; padding: 25px; border-radius: 8px; border: 1px solid #e9ecef;">
-            <h3 style="margin-top: 0; font-size: 1.1em; border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px;">
-                Reduce Usage By...
-            </h3>
-            <div id="sliderContainer">
-                <p>Loading home data...</p>
-            </div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button onclick="resetSliders()" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    Reset All
-                </button>
-            </div>
-        </div>
+  <div class="section-header anim-fade">
+    <div class="section-eyebrow">Savings Simulator</div>
+    <h2 class="section-title">Targeted Savings Calculator</h2>
+    <p class="section-subtitle">Drag the sliders to simulate reducing usage in specific categories and see your projected bill.</p>
+  </div>
 
-        <div class="results-card" style="flex: 1.5; min-width: 400px; display: flex; flex-direction: column;">
-            <div id="savingsResultChart" style="height: 400px;"></div>
-            <div id="savingsBigNumber" style="text-align: center; margin-top: 10px; padding: 15px; background: #d4edda; border-radius: 8px; color: #155724;">
-                Estimated Total Savings: <strong>$0.00</strong>
-            </div>
-        </div>
+  <div class="savings-grid">
+    <div class="controls-card anim-fade stagger-1">
+      <h3>Reduce Usage By…</h3>
+      <div id="sliderContainer"><p>Loading home data…</p></div>
+      <button class="reset-btn" onclick="resetSliders()">↺ Reset All</button>
     </div>
+    <div class="results-card anim-fade stagger-2">
+      <div class="chart-label">Projection</div>
+      <div class="chart-title">Projected Bill Savings</div>
+      <div id="savingsResultChart" style="height:380px;"></div>
+      <div id="savingsBigNumber" class="savings-big-number">
+        Estimated Total Savings: <strong>$0.00</strong>
+      </div>
+    </div>
+  </div>
 </div>
-<!-- Info tab -->
+
+<!-- ===================== INFO TAB ===================== -->
 <div id="Info" class="tabcontent">
-  <h2>About</h2>
-  <p>This dashboard was created as part of a collaborative effort between researchers and community partners to transform energy data into meaningful insights that directly benefit local residents. By integrating household consumption records with seasonal, hourly, and day‑of‑week analyses, as well as weather forecasts and property characteristics, the tool provides a multi‑layered understanding of how and when energy is used. Beyond simply tracking numbers, it highlights patterns, trends, and key drivers of demand, helping to establish a baseline for understanding household energy behavior. These findings are intended to support equitable and sustainable energy solutions by reducing costs, alleviating energy burdens, and empowering disadvantaged communities with knowledge that can inform both individual decisions and broader policy initiatives.</p>
-  <div id="homeInfoCard" class="info-card"></div>
+
+  <div class="section-header anim-fade">
+    <div class="section-eyebrow">About this Dashboard</div>
+    <h1 class="section-title">Home Intelligence</h1>
+  </div>
+
+  <div class="about-card anim-fade stagger-1">
+    <p>
+      This dashboard was created as part of a collaborative effort between researchers and community
+      partners to transform energy data into meaningful insights that directly benefit local residents.
+      By integrating household consumption records with seasonal, hourly, and day-of-week analyses,
+      as well as weather forecasts and property characteristics, the tool provides a multi-layered
+      understanding of how and when energy is used. These findings support equitable and sustainable
+      energy solutions by reducing costs, alleviating energy burdens, and empowering disadvantaged
+      communities with knowledge that can inform both individual decisions and broader policy initiatives.
+    </p>
+  </div>
+
+  <div class="section-header anim-fade stagger-2">
+    <div class="section-eyebrow">Property</div>
+    <h2 class="section-title">Home Details</h2>
+  </div>
+  <div id="homeInfoCard" class="info-grid anim-fade stagger-3"></div>
 </div>
-<!-- Forecast tab -->
+
+<!-- ===================== FORECAST TAB ===================== -->
 <div id="Forecast" class="tabcontent">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h2>7-Day Weather Forecast</h2>
-    <button id="weatherToggleBtn" onclick="toggleWeatherUnit()" style="padding:8px 16px; cursor:pointer; font-weight:bold; border-radius:4px; border:1px solid #ccc;">
-      Switch to °C
+
+  <div class="forecast-toolbar anim-fade">
+    <div class="section-header" style="margin:0;">
+      <div class="section-eyebrow">Atlanta, GA</div>
+      <h1 class="section-title">7-Day Weather Forecast</h1>
+    </div>
+    <button class="toggle-btn" id="weatherToggleBtn" onclick="toggleWeatherUnit()">
+      ⇄ Switch to °C
     </button>
   </div>
-  <div id="tempChart"></div>
-  <div id="cloudChart"></div>
-  <div id="solarChart"></div>
+
+  <div class="chart-card anim-fade stagger-1">
+    <div class="chart-label">Temperature</div>
+    <div class="chart-title">Hourly Air Temp vs. Feels Like</div>
+    <div id="tempChart"></div>
+  </div>
+  <div class="chart-card anim-fade stagger-2">
+    <div class="chart-label">Clouds</div>
+    <div class="chart-title">Hourly Cloud Cover</div>
+    <div id="cloudChart"></div>
+  </div>
+  <div class="chart-card anim-fade stagger-3">
+    <div class="chart-label">Solar</div>
+    <div class="chart-title">Hourly Solar Radiation</div>
+    <div id="solarChart"></div>
+  </div>
 </div>
+
+<!-- ===================== PLOTLY THEME ===================== -->
+<script>
+/* -------------------------------------------------------
+   GLOBAL PLOTLY DEFAULT TEMPLATE (Apple-ish)
+------------------------------------------------------- */
+const PLOTLY_TEMPLATE = {
+  layout: {
+    font: { family: "'Figtree', -apple-system, sans-serif", size: 13, color: '#1d1d1f' },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor:  'rgba(0,0,0,0)',
+    colorway: ['#0071e3','#34c759','#ff9f0a','#ff3b30','#5ac8fa','#bf5af2'],
+    xaxis: {
+      gridcolor: 'rgba(0,0,0,0.06)',
+      linecolor:  'rgba(0,0,0,0.12)',
+      zeroline: false,
+      tickfont: { size: 12 }
+    },
+    yaxis: {
+      gridcolor: 'rgba(0,0,0,0.06)',
+      linecolor:  'rgba(0,0,0,0.12)',
+      zeroline: false,
+      tickfont: { size: 12 }
+    },
+    legend: {
+      bgcolor: 'rgba(255,255,255,0.7)',
+      bordercolor: 'rgba(0,0,0,0.08)',
+      borderwidth: 1,
+      borderradius: 8
+    },
+    margin: { t: 20, l: 56, r: 20, b: 50 },
+    hoverlabel: {
+      bgcolor: 'rgba(255,255,255,0.95)',
+      bordercolor: 'rgba(0,0,0,0.10)',
+      font: { family: "'Figtree', sans-serif", size: 13 }
+    }
+  }
+};
+
+function applyTemplate(layout) {
+  return Object.assign({}, PLOTLY_TEMPLATE.layout, layout, {
+    font: Object.assign({}, PLOTLY_TEMPLATE.layout.font, layout.font || {}),
+    xaxis: Object.assign({}, PLOTLY_TEMPLATE.layout.xaxis, layout.xaxis || {}),
+    yaxis: Object.assign({}, PLOTLY_TEMPLATE.layout.yaxis, layout.yaxis || {}),
+    legend: Object.assign({}, PLOTLY_TEMPLATE.layout.legend, layout.legend || {}),
+    margin: Object.assign({}, PLOTLY_TEMPLATE.layout.margin, layout.margin || {}),
+    hoverlabel: Object.assign({}, PLOTLY_TEMPLATE.layout.hoverlabel, layout.hoverlabel || {})
+  });
+}
+
+const PLOTLY_CONFIG = { responsive: true, displayModeBar: false };
+</script>
+
+<!-- ===================== MAIN LOGIC ===================== -->
 <script>
     // === 1. GLOBAL CONFIGURATION ===
     const ID_MAP = {
         "2005": "1", "2462": "2", "2542": "3", "2933": "4", "3485": "5",
         "3841": "6", "4399": "7", "5265": "8", "7246": "9", "7352": "10",
         "7624": "11", "9765": "12", "9783": "13", "10323": "14", "10532": "15",
-        "10686": "16", "11744": "17", "6820": "18", "10458": "19", "4164": 20, 
+        "10686": "16", "11744": "17", "6820": "18", "10458": "19", "4164": 20,
         "11991": 21, "3172": 22
     };
 
-    // === 2. MASTER DATA FIXER (Intercepts Data Loading) ===
+    // === 2. MASTER DATA FIXER ===
     const originalD3Csv = d3.csv;
     d3.csv = function(url, ...args) {
         return originalD3Csv(url, ...args).then(data => {
-            
-            // A. FIX DATES: Convert "12/1/2025" -> "2025-12-01"
-            // This format prevents "Nov 30" shifts AND hides "12:00"
             if (data.columns && data.columns.length > 1) {
                 const oldCols = [...data.columns];
                 const newCols = data.columns.map((col, i) => {
-                    // Detect date headers (e.g. "1/1/2025")
                     if (i > 0 && col.includes('/') && col.split('/').length === 3) {
                         const [m, d, y] = col.split('/');
-                        // Return clean ISO format: YYYY-MM-DD
                         return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
                     }
                     return col;
                 });
-
-                // Update data keys to match new ISO headers
                 data.forEach(row => {
                     oldCols.forEach((oldKey, i) => {
                         if (oldKey !== newCols[i]) {
-                            row[newCols[i]] = row[oldKey]; // Move data
-                            delete row[oldKey];            // Delete old key
+                            row[newCols[i]] = row[oldKey];
+                            delete row[oldKey];
                         }
                     });
                 });
-                data.columns = newCols; 
+                data.columns = newCols;
             }
-
-            // B. FIX IDS: Map Old -> New and Sort
             data.forEach(row => {
                 if (row.dataid && ID_MAP[row.dataid]) row.dataid = ID_MAP[row.dataid];
             });
             data.sort((a, b) => Number(a.dataid) - Number(b.dataid));
-
             return data;
         });
     };
 
-    // Apply same fix to Plotly's internal D3 (used by Hourly charts)
     if (window.Plotly && Plotly.d3) {
         const originalPlotlyCsv = Plotly.d3.csv;
         Plotly.d3.csv = function(url, callback) {
@@ -193,811 +909,563 @@
 
     // === 3. SETUP & HELPERS ===
     const params = new URLSearchParams(window.location.search);
-    let rawBldg = params.get("bldg") || "7352"; 
+    let rawBldg = params.get("bldg") || "7352";
     let bldg = ID_MAP[rawBldg] || rawBldg;
-    if (bldg === "7352") bldg = "10"; 
+    if (bldg === "7352") bldg = "10";
 
-    // Simplified Date Parser (Works with our new ISO Strings)
-    function parseHeaderDate(s) {
-        // Since we already converted headers to "2025-12-01", 
-        // we can just return the string. Plotly loves ISO strings.
-        return s; 
-    }
-// === Energy Cost Calculator (Atlanta version) ===
-function calculateCost(kwh, dateStr) {
-    if (!kwh || kwh <= 0) return 0;
+    function parseHeaderDate(s) { return s; }
 
-    // FIX: Use standard Date parsing to handle "MM/DD/YYYY" (slashes) or "YYYY-MM-DD"
-    const dateObj = new Date(dateStr);
-    
-    // Safety check if date is invalid
-    if (isNaN(dateObj.getTime())) return 0;
-
-    const year = dateObj.getFullYear();
-    const month = dateObj.getMonth() + 1; // JS months are 0-11, we need 1-12
-    const numDays = new Date(year, month, 0).getDate(); // Get last day of the specific month
-
-    const basicCharge = 0.4603 * numDays;
-    const isSummer = [6, 7, 8, 9].includes(month);
-
-    let energyCharge = 0;
-    if (isSummer) {
-        if (kwh <= 650) {
-            energyCharge = kwh * 0.086;
-        } else if (kwh <= 1000) {
-            energyCharge = (650 * 0.086) + ((kwh - 650) * 0.143);
+    // === Energy Cost Calculator ===
+    function calculateCost(kwh, dateStr) {
+        if (!kwh || kwh <= 0) return 0;
+        const dateObj = new Date(dateStr);
+        if (isNaN(dateObj.getTime())) return 0;
+        const year = dateObj.getFullYear();
+        const month = dateObj.getMonth() + 1;
+        const numDays = new Date(year, month, 0).getDate();
+        const basicCharge = 0.4603 * numDays;
+        const isSummer = [6, 7, 8, 9].includes(month);
+        let energyCharge = 0;
+        if (isSummer) {
+            if (kwh <= 650)       energyCharge = kwh * 0.086;
+            else if (kwh <= 1000) energyCharge = (650 * 0.086) + ((kwh - 650) * 0.143);
+            else                  energyCharge = (650 * 0.086) + (350 * 0.143) + ((kwh - 1000) * 0.148);
         } else {
-            energyCharge = (650 * 0.086) + (350 * 0.143) + ((kwh - 1000) * 0.148);
+            energyCharge = kwh * 0.081;
         }
-    } else {
-        energyCharge = kwh * 0.081;
+        const subtotal  = basicCharge + energyCharge;
+        const eccr      = kwh * 0.0145;
+        const mff       = (subtotal + eccr) * 0.030674;
+        const salesTax  = (subtotal + eccr + mff) * 0.089;
+        return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
     }
 
-    const subtotal = basicCharge + energyCharge;
-    const eccr = kwh * 0.0145;
-    const mff = (subtotal + eccr) * 0.030674;
-    const salesTax = (subtotal + eccr + mff) * 0.089;
-
-    return Math.round((subtotal + eccr + mff + salesTax) * 100) / 100;
-}
-function drawCostChart(homeData, avgByMonth) {
-    // 1. Safety Check: If data is missing, stop.
-    if (!homeData || !avgByMonth) return;
-
-    // 2. Filter Data: Only keep months where the Home has usage > 0
-    const allMonths = Object.keys(homeData).filter(m => m !== "dataid");
-    const validMonths = allMonths.filter(m => Number(homeData[m]) > 0);
-
-    // If no valid data, clear the chart area safely
-    if (validMonths.length === 0) {
-        const chartDiv = document.getElementById('costChart');
-        if (chartDiv) chartDiv.innerHTML = "No valid data to display.";
-        return;
+    function drawCostChart(homeData, avgByMonth) {
+        if (!homeData || !avgByMonth) return;
+        const allMonths  = Object.keys(homeData).filter(m => m !== "dataid");
+        const validMonths = allMonths.filter(m => Number(homeData[m]) > 0);
+        if (validMonths.length === 0) {
+            const d = document.getElementById('costChart');
+            if (d) d.innerHTML = "No valid data to display.";
+            return;
+        }
+        const costValues = validMonths.map(m => calculateCost(Number(homeData[m]), m));
+        const commValues = validMonths.map(m => {
+            const val = avgByMonth[m] !== undefined ? avgByMonth[m] : 0;
+            return calculateCost(val, m);
+        });
+        const getAvg = arr => arr.length ? (arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(2) : "0.00";
+        const traceHome = {
+            x: validMonths, y: costValues, type: 'scatter', mode: 'lines+markers+text',
+            text: costValues.map(v => '$' + Math.round(v)),
+            textposition: 'top center',
+            name: `Home ${homeData.dataid} (Avg: $${getAvg(costValues)})`,
+            line: { color: '#0071e3', width: 2.5 },
+            marker: { size: 8, color: '#0071e3' },
+            textfont: { size: 11, color: '#0071e3', weight: 'bold' }
+        };
+        const traceAvg = {
+            x: validMonths, y: commValues, type: 'scatter', mode: 'lines',
+            name: `Community Avg (Avg: $${getAvg(commValues)})`,
+            line: { color: '#ff9f0a', width: 2, dash: 'dot' }
+        };
+        const layout = applyTemplate({
+            yaxis: { title: 'Cost ($)' },
+            hovermode: 'x unified',
+            margin: { t: 20, l: 60, r: 20, b: 50 }
+        });
+        Plotly.newPlot('costChart', [traceHome, traceAvg], layout, PLOTLY_CONFIG);
     }
 
-    // 3. Calculate Costs
-    const costValues = validMonths.map(m => calculateCost(Number(homeData[m]), m));
-    
-    // Safety check for community data: ensure the month exists in avgByMonth
-    const commValues = validMonths.map(m => {
-        const val = avgByMonth[m] !== undefined ? avgByMonth[m] : 0;
-        return calculateCost(val, m);
-    });
+    function safePlot(divId, data, layout) {
+        const div = document.getElementById(divId);
+        div.style.display = "block";
+        div.innerHTML = "";
+        if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
+            div.style.display = "none";
+        } else {
+            Plotly.newPlot(divId, data, applyTemplate(layout), PLOTLY_CONFIG);
+        }
+    }
 
-    // 4. Calculate Averages for Legend
-    const getAvg = (arr) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "0.00";
-    const homeLegend = `Home ${homeData.dataid} (Avg: $${getAvg(costValues)})`;
-    const commLegend = `Community Avg (Avg: $${getAvg(commValues)})`;
-
-    // 5. Trace 1: Home (Blue Solid Line + Dots + Text Labels)
-    // You requested Blue in your screenshot example, but Black in previous turn. 
-    // I will use the Blue from your screenshot (image_03895f.png) as it matches the "Home" style better.
-    const traceHome = {
-        x: validMonths,
-        y: costValues,
-        type: 'scatter',
-        mode: 'lines+markers+text',
-        text: costValues.map(v => '$' + Math.round(v)),
-        textposition: 'top center',
-        name: homeLegend,
-        line: { color: '#1f77b4', width: 2 }, // Standard Blue
-        marker: { size: 8, color: '#1f77b4', symbol: 'circle' },
-        textfont: { family: 'Arial', size: 12, color: '#1f77b4', weight: 'bold' }
-    };
-
-    // 6. Trace 2: Community (Red Dotted Line, No Labels)
-    const traceAvg = {
-        x: validMonths,
-        y: commValues,
-        type: 'scatter',
-        mode: 'lines',
-        name: commLegend,
-        line: { color: 'red', width: 2, dash: 'dot' }
-    };
-
-    // 7. Layout: Clean Research Style
-    const layout = {
-        title: { text: 'Estimated Monthly Energy Cost', font: { family: 'Times New Roman', size: 24 } },
-        template: 'simple_white',
-        yaxis: { title: 'Cost ($)', showgrid: true, gridcolor: '#eee' },
-        xaxis: { title: '', showgrid: false },
-        legend: { x: 1, y: 1.1, xanchor: 'right', orientation: 'h' },
-        margin: { t: 80, l: 60, r: 40, b: 60 },
-        hovermode: 'x unified'
-    };
-
-    // FIX: Target 'costChart' (Tab 3) instead of 'monthlyCostChart'
-    Plotly.newPlot('costChart', [traceHome, traceAvg], layout, {responsive: true});
-}
-//通用绘图函数：无数据则隐藏，有数据则绘制
-function safePlot(divId, data, layout) {
-  const div = document.getElementById(divId);
-  // Always reset visibility before checking
-  div.style.display = "block";
-  div.innerHTML = ""; // clear any old content
-  if (!data || data.length === 0 || data.every(t => !t.y || t.y.length === 0)) {
-    div.style.display = "none";   // hide if no data
-  } else {
-    Plotly.newPlot(divId, data, layout, {responsive:true});
-  }
-}
     d3.csv("MonthlyEnergy_28days.csv").then(function(data) {
-      const headers = data.columns;
-      const dateCols = headers.slice(1);
-      // Compute average for each month across all homes
-      const avgByMonth = {};
-      dateCols.forEach(col => {
-        let vals = data
-          .map(row => {
-            const v = row[col];
-            return (v && v.trim() !== "") ? +v : null;
-          })
-          .filter(v => v !== null && !isNaN(v));
-        if (vals.length > 0) {
-          avgByMonth[col] = d3.mean(vals);
-        }
-      });   
-      // Populate dropdown
-      const selectEl = document.getElementById("homeSelect");
-      data.forEach(row => {
-        const id = row["dataid"];
-        if (id) {
-          const opt = document.createElement("option");
-          opt.value = id;
-          opt.textContent = id;
-          selectEl.appendChild(opt);
-        }
-      });
-// Populate cost tab dropdown
-// --- CODE FOR COST SELECT (Tab 3) ---
-    const homeSelectCost = document.getElementById("homeSelectCost");
-    
-    // Clear existing options first to avoid duplicates if re-run
-    homeSelectCost.innerHTML = ""; 
+        const headers  = data.columns;
+        const dateCols = headers.slice(1);
 
-    data.forEach(d => {
-        const opt = document.createElement("option");
-        opt.value = d.dataid;
-        opt.textContent = d.dataid;
-        homeSelectCost.appendChild(opt);
-    });
-    // INITIAL LOAD: Pass 'avgByMonth' as the second argument
-    if (data.length > 0) {
-        // Use 'bldg' global var or fallback to first
-        const initialHome = data.find(d => d.dataid == bldg) || data[0];
-        homeSelectCost.value = initialHome.dataid;
-        
-        drawCostChart(initialHome, avgByMonth);
-    }
-// Initial draw for the first home
-if (data.length > 0) {
-    const first = data[0];
-    homeSelectCost.value = first.dataid;
-    drawCostChart(first);
-}
-      selectEl.value = bldg;
-      function drawChart(homeId) {
-        const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
-        if (!row) {
-          document.getElementById("msg").innerText = "No data for " + homeId;
-          return;
-        }
-        const x = [], y = [];
+        const avgByMonth = {};
         dateCols.forEach(col => {
-          const val = row[col];
-          if (val && val.trim() !== "") {
-            x.push(parseHeaderDate(col));
-            y.push(+val);
-          }
+            let vals = data.map(row => {
+                const v = row[col];
+                return (v && v.trim() !== "") ? +v : null;
+            }).filter(v => v !== null && !isNaN(v));
+            if (vals.length > 0) avgByMonth[col] = d3.mean(vals);
         });
-        if (x.length === 0) {
-          document.getElementById("msg").innerText = "No values found for Home " + homeId;
-          safePlot("chart", [], {});   // hide chart properly
-          return;
+
+        // Populate dropdowns
+        const selectEl = document.getElementById("homeSelect");
+        data.forEach(row => {
+            const id = row["dataid"];
+            if (id) {
+                const opt = document.createElement("option");
+                opt.value = id; opt.textContent = "Home " + id;
+                selectEl.appendChild(opt);
+            }
+        });
+
+        const homeSelectCost = document.getElementById("homeSelectCost");
+        homeSelectCost.innerHTML = "";
+        data.forEach(d => {
+            const opt = document.createElement("option");
+            opt.value = d.dataid; opt.textContent = "Home " + d.dataid;
+            homeSelectCost.appendChild(opt);
+        });
+
+        if (data.length > 0) {
+            const initialHome = data.find(d => d.dataid == bldg) || data[0];
+            homeSelectCost.value = initialHome.dataid;
+            drawCostChart(initialHome, avgByMonth);
         }
-        const avgX = [], avgY = [];
-        dateCols.forEach(col => {
-          if (avgByMonth[col] !== undefined) {
-            avgX.push(parseHeaderDate(col));
-            avgY.push(avgByMonth[col]);
-          }
-        });
-        const maxValHome = Math.max(...y);
-        const maxValAvg = avgY.length > 0 ? Math.max(...avgY) : 0;
-        const yMax = Math.max(maxValHome, maxValAvg) * 1.2;
 
-        // --- Compute averages ---
-        const homeAvg = d3.mean(y).toFixed(1);
-        const commAvg = avgY.length > 0 ? d3.mean(avgY).toFixed(1) : "N/A";  
-        safePlot("chart", [
-          {
-            x: x,
-            y: y,
-            type: "scatter",
-            mode: "lines+markers",
-            name: "Home " + homeId
-          },
-          {
-            x: avgX,
-            y: avgY,
-            type: "scatter",
-            mode: "lines",
-            name: "Community Average",
-            line: { color: "red", dash: "dot" }
-          }
-        ], {
-          title: "Total Energy Consumption by Month for Home " + homeId,
-          xaxis: { title: "Month", type: "date" },
-          yaxis: { title: "kWh", range: [0, yMax] },
-  // ⬇️ Add these lines inside the layout object
-  legend: {
-    x: 1.02,
-    y: 1,
-    xanchor: "left",
-    yanchor: "top",
-    orientation: "v"
-  },
-  margin: { r: 180, t: 50, b: 50, l: 60 },
-  annotations: [
-    {
-      xref: "paper",
-      yref: "paper",
-      x: 1.02,
-      y: 0.92,
-      text: "Home Avg: " + homeAvg + " kWh/month",
-      showarrow: false,
-      align: "left"
-    },
-    {
-      xref: "paper",
-      yref: "paper",
-      x: 1.02,
-      y: 0.86,
-      text: "Community Avg: " + commAvg + " kWh/month",
-      showarrow: false,
-      align: "left"
-    }]
-        });
-      }
-      // Initial draw
-      drawChart(bldg);
-      document.getElementById("msg").innerText = "";
-      // Dropdown change
-      selectEl.addEventListener("change", () => {
-        const newId = selectEl.value;
-        const url = new URL(window.location);
-        url.searchParams.set("bldg", newId);
-        window.history.replaceState({}, "", url);
-        drawChart(newId);
-      });
-<!-- ===== Winter/Summer Comparison Code START ===== -->
-Promise.all([
-  d3.csv("Category_SummerDailyAvg.csv"),
-  d3.csv("Category_WinterDailyAvg.csv")
-]).then(([summer, winter]) => {
-  function avgRow(data) {
-    const result = {};
-    data.columns.slice(1).forEach(col => {
-      const vals = data.map(r => +r[col]).filter(v => v > 0);
-      if (vals.length > 0) result[col] = d3.mean(vals);
-    });
-    return result;
-  }
-  const sAvg = avgRow(summer);
-  const wAvg = avgRow(winter);
-function prepPercent(row, avg, labelHome, labelAvg) {
-  if (!row) return [];
-  const entries = Object.keys(row)
-    .filter(k => k !== "dataid" && +row[k] > 0)
-    .map(k => ({ cat: k, val: +row[k] }));
-  const total = d3.sum(entries, d => d.val);
-  const homeData = entries.map(d => ({
-    cat: d.cat,
-    val: d.val / total * 100,   // percentage
-    raw: d.val,                 // actual kWh
-    type: labelHome
-  }));
-  const avgEntries = Object.keys(avg)
-    .filter(k => avg[k] > 0)
-    .map(k => ({ cat: k, val: avg[k] }));
-  const avgTotal = d3.sum(avgEntries, d => d.val);
-  const avgData = avgEntries.map(d => ({
-    cat: d.cat,
-    val: d.val / avgTotal * 100,
-    raw: d.val,
-    type: labelAvg
-  }));
-  return [...homeData, ...avgData];
-}
-function makeTraces(data) {
-  const types = [...new Set(data.map(d => d.type))];
-  return types.map(t => {
-    const filtered = data.filter(d => d.type === t);
-    return {
-      x: filtered.map(d => d.cat),
-      y: filtered.map(d => d.val),
-      name: t,
-      type: "bar",
-      text: filtered.map(d => d.val.toFixed(1) + "%"),
-//      text: filtered.map(d => d.val.toFixed(1) + "% (" + d.raw.toFixed(1) + " kWh)"),
-      textposition: "outside"
-    };
-  });
-}
-// Keep hourly at top-level inside this Promise block
-function drawHourlyChart(homeId) {
-  Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
-    if (err) {
-      console.error("Error loading HourlyEnergy.csv:", err);
-      return;
-    }
-    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
-    const hours = filtered.map(r => +r.hour);
-    const values = filtered.map(r => +r.grid);
-// --- Community average across all homes ---
-const grouped = d3.nest()
-  .key(d => +d.hour)
-  .rollup(v => d3.mean(v, d => +d.grid))
-  .entries(rows);
-const avgHours = grouped.map(d => d.key);
-const avgValues = grouped.map(d => d.value);
-const traceAvg = {
-  x: avgHours, y: avgValues, type: "scatter", mode: "lines",
-  line: { color: "orange", dash: "dot" },
-  name: "Community Average"
-};
-    const trace = {
-  x: hours,
-  y: values,
-  type: "scatter",
-  mode: "lines+markers",   // add text labels
-  text: values.map(v => v.toFixed(1) + " kWh"), // label each point
-  textposition: "top center",
-  line: { color: "#1f77b4", width: 2 },
-  marker: { size: 6 },
-  name: "Home " + homeId
-};
-    const layout = {
-      title: "Hourly Energy Use for Home " + homeId,
-      xaxis: {title: "Hour of Day", tickmode: "linear", dtick: 1, range: [0, 23]},
-      yaxis: {title: "Energy Use (kWh)"}
-    };
-    safePlot("hourlyChart", [trace, traceAvg], layout);
-  });
-}
-// ===== Day of Week chart =====
-function drawDayOfWeekChart(homeId) {
-  Plotly.d3.csv("DayOfWeek.csv", function(err, rows) {
-    if (err) {
-      console.error("Error loading DayOfWeek.csv:", err);
-      return;
-    }
-    // Filter for the selected home
-    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
-    // Map day numbers to names
-    const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-    const days = filtered.map(r => dayNames[+r.day_of_week]);
-    const values = filtered.map(r => +r.grid);
-    // --- Community average across all homes ---
-    const grouped = d3.nest()
-      .key(d => +d.day_of_week)
-      .rollup(v => d3.mean(v, d => +d.grid))
-      .entries(rows);
-    const avgDays = grouped.map(d => dayNames[d.key]);
-    const avgValues = grouped.map(d => d.value);
-    // --- Traces ---
-    const traceHome = {
-      x: days,
-      y: values,
-      type: "bar",
-      text: values.map(v => v.toFixed(1) + " kWh"), // labels above bars
-      textposition: "outside",
-      marker: { color: "#2ca02c" },
-      name: "Home " + homeId
-    };
-    const traceAvg = {
-      x: avgDays,
-      y: avgValues,
-      type: "bar",
-      text: avgValues.map(v => v.toFixed(1) + " kWh"),
-      textposition: "outside",
-      marker: { color: "orange" },
-      name: "Community Average"
-    };
-    const layout = {
-      barmode: "group",
-      title: "Average Daily Energy Use by Day of Week for Home " + homeId,
-      xaxis: { title: "Day of Week" },
-      yaxis: { title: "Energy Use (kWh)" }
-    };
-    safePlot("dayOfWeekChart", [traceHome, traceAvg], layout);
-  });
-}
-// ===== Home Info card =====
-function drawHomeInfo(homeId) {
-  d3.csv("PropertyData.csv").then(rows => {
-    const row = rows.find(r => Number(r["dataid"]) === Number(homeId));
-    if (!row) {
-      document.getElementById("homeInfoCard").innerHTML = "No info available.";
-      return;
-    }
-    const infoItems = [
-      { icon: "🏠", label: "Exterior Wall", value: row["Exterior Wall"] },
-      { icon: "📅", label: "Year Built", value: row["Year Built"] },
-      { icon: "📐", label: "Sq Ft", value: row["Res Sq Ft"] },
-      { icon: "🛏️", label: "Bedrooms", value: row["Bedrooms"] },
-      { icon: "🔥", label: "Heating System", value: row["Heating System"] },
-      { icon: "💨", label: "Heat", value: row["Heat"] },
-      { icon: "📊", label: "Grade Factor", value: row["Grade Factor"] },
-      { icon: "💲", label: "Assessed Value", value: row["Assessed Value"] }
-    ];
-    const html = infoItems.map(item => `
-      <div class="icon">${item.icon}</div>
-      <div><span class="label">${item.label}:</span> ${item.value}</div>
-    `).join("");
-    document.getElementById("homeInfoCard").innerHTML = html;
-  });
-}
-function drawMonthlyCostChart(homeId) {
-  d3.csv("EnergyCost.csv").then(costData => {
-    const row = costData.find(r => r.dataid === homeId);
-    if (!row) {
-      document.getElementById("monthlyCostChart").innerHTML = "No cost data available.";
-      return;
-    }
-    const months = Object.keys(row).filter(k => k !== "dataid");
-    const values = months.map(m => row[m] ? +row[m] : null);
-    // 社区平均
-const avgValues = months.map(m => {
-  const nums = costData
-    .map(r => r[m] ? +r[m] : NaN)   // convert only if not empty
-    .filter(v => !isNaN(v));        // drop NaN values
-  return nums.length ? d3.mean(nums) : null;
-    });
-    const traceHome = {
-      x: months,
-      y: values,
-      type: "scatter",
-      mode: "lines+markers",
-      name: "Home " + homeId,
-      marker: { color: "#1f77b4", width: 2 }
-    };
-    const traceAvg = {
-      x: months,
-      y: avgValues,
-      type: "scatter",
-      mode: "lines+markers",
-      name: "Community Average",
-      line: { color: "orange", width: 2 }
-    };
-    const layout = {
-      barmode: "group",
-      yaxis: { title: "Monthly Cost ($)" },
-      margin: { t: 30 }
-    };
-    Plotly.newPlot("monthlyCostChart", [traceHome, traceAvg], layout, {responsive: true});
-  });
-}
-  // The ONLY seasonal function — do not redefine it later
-  function drawSeasonCharts(homeId) {
-    document.getElementById("msg").innerText = "";
-    const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
-    const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
-    const summerData = sRow ? prepPercent(sRow, sAvg, "Home " + homeId, "Community Average") : [];
-    const winterData = wRow ? prepPercent(wRow, wAvg, "Home " + homeId, "Community Average") : [];
-    const maxValS = d3.max(summerData, d => d.val) || 0;
-    const maxValW = d3.max(winterData, d => d.val) || 0;
-    safePlot("summerChart", makeTraces(summerData), {
-      barmode: "group",
-      title: "Summer (June-Aug) Energy Usage Distribution by Category for Home " + homeId,
-      yaxis: { title: "% of total household energy use", range: [0, maxValS * 1.2] },
-      xaxis: { title: "Category" }
-    });
-    safePlot("winterChart", makeTraces(winterData), {
-      barmode: "group",
-      title: "Winter (Dec-Feb) Energy Usage Distribution by Category for Home " + homeId,
-      yaxis: { title: "% of total household energy use", range: [0, maxValW * 1.2] },
-      xaxis: { title: "Category" }
-    });
-  }
-// ============================================================
-//  UNIFIED MASTER UPDATE HANDLER (Syncs Tabs 1, 2, 3, 4)
-// ============================================================
-const usageSelect = document.getElementById("homeSelect");
-const costSelect = document.getElementById("homeSelectCost");
+        selectEl.value = bldg;
 
-function handleGlobalChange(newId) {
-    // 1. Sync Visuals (Dropdowns & URL)
-    if (usageSelect.value !== newId) usageSelect.value = newId;
-    if (costSelect.value !== newId) costSelect.value = newId;
-    
-    const url = new URL(window.location);
-    url.searchParams.set("bldg", newId);
-    window.history.replaceState({}, "", url);
-
-    // 2. Update TAB 2 (Energy Usage)
-    drawChart(newId);
-    drawMonthlyCostChart(newId);
-    drawSeasonCharts(newId);
-    drawHourlyChart(newId);
-    drawDayOfWeekChart(newId);
-
-    // 3. Update TAB 1 (Info)
-    drawHomeInfo(newId);
-
-    // 4. Update TAB 3 (Cost & Savings)
-    // Note: Cost chart needs the specific row object, not just ID
-    const selectedData = data.find(d => d.dataid == newId);
-    if (selectedData) {
-        drawCostChart(selectedData, avgByMonth);
-        if (window.drawSavingsCalculator) {
-            window.drawSavingsCalculator(newId);
-        }
-    }
-}
-
-// Attach the Master Handler to BOTH dropdowns
-usageSelect.addEventListener("change", (e) => handleGlobalChange(e.target.value));
-costSelect.addEventListener("change", (e) => handleGlobalChange(e.target.value));
-
-// Initial Load (Draws everything at once)
-if (data.find(d => d.dataid === bldg)) {
-    handleGlobalChange(bldg);
-}
-// ============================================================
-    //  NEW: Savings Calculator Logic (Appended Safely)
-    // ============================================================
-    
-    // 1. Load Seasonal Data
-    Promise.all([
-        d3.csv("Category_SummerDailyAvg.csv"),
-        d3.csv("Category_WinterDailyAvg.csv"),
-        d3.csv("Category_SpringDailyAvg.csv"),
-        d3.csv("Category_FallDailyAvg.csv")
-    ]).then(([summer, winter, spring, fall]) => {
-        
-        const seasons = { 'summer': summer, 'winter': winter, 'spring': spring, 'fall': fall };
-        const getSeasonName = m => [6,7,8].includes(m)?'summer':[12,1,2].includes(m)?'winter':[3,4,5].includes(m)?'spring':'fall';
-        
-        // Helper: Calculate Category Breakdown (%)
-        function getSeasonPcts(homeId, seasonName) {
-            const row = seasons[seasonName].find(d => d.dataid == homeId);
-            if (!row) return null;
-            const cats = ["HVAC","Water_Heating_Pumps","Kitchen_Refrigeration","Laundry","Lighting_Plugs_Rooms"];
-            let total = 0;
-            const vals = {};
-            cats.forEach(c => {
-                const v = parseFloat(row[c]) || 0;
-                vals[c] = v;
-                total += v;
+        // ---- drawChart ----
+        function drawChart(homeId) {
+            const row = data.find(d => String(d["dataid"]).trim() === String(homeId));
+            if (!row) {
+                document.getElementById("msg").innerText = "No data for " + homeId;
+                return;
+            }
+            const x = [], y = [];
+            dateCols.forEach(col => {
+                const val = row[col];
+                if (val && val.trim() !== "") { x.push(parseHeaderDate(col)); y.push(+val); }
             });
-            if (total === 0) return null;
-            const pcts = {};
-            cats.forEach(c => pcts[c] = vals[c] / total);
-            return pcts;
+            if (x.length === 0) {
+                document.getElementById("msg").innerText = "No values found for Home " + homeId;
+                safePlot("chart", [], {});
+                return;
+            }
+            const avgX = [], avgY = [];
+            dateCols.forEach(col => {
+                if (avgByMonth[col] !== undefined) { avgX.push(parseHeaderDate(col)); avgY.push(avgByMonth[col]); }
+            });
+            const yMax = Math.max(Math.max(...y), avgY.length ? Math.max(...avgY) : 0) * 1.2;
+            const homeAvg = d3.mean(y).toFixed(1);
+            const commAvg = avgY.length ? d3.mean(avgY).toFixed(1) : "N/A";
+
+            safePlot("chart", [
+                { x, y, type: "scatter", mode: "lines+markers", name: "Home " + homeId,
+                  line: { color: '#0071e3', width: 2.5 }, marker: { size: 7 } },
+                { x: avgX, y: avgY, type: "scatter", mode: "lines",
+                  name: "Community Average", line: { color: "#ff9f0a", dash: "dot", width: 2 } }
+            ], {
+                xaxis: { title: "Month", type: "date" },
+                yaxis: { title: "kWh", range: [0, yMax] },
+                legend: { x: 1.02, y: 1, xanchor: "left", yanchor: "top", orientation: "v" },
+                margin: { r: 180, t: 20, b: 50, l: 60 },
+                annotations: [
+                    { xref:"paper", yref:"paper", x:1.02, y:0.92, text:"Home Avg: " + homeAvg + " kWh/mo", showarrow:false, align:"left" },
+                    { xref:"paper", yref:"paper", x:1.02, y:0.85, text:"Comm Avg: " + commAvg + " kWh/mo", showarrow:false, align:"left" }
+                ],
+                hovermode: 'x unified'
+            });
         }
 
-        // Main Draw Function
-        window.drawSavingsCalculator = function(homeId) {
-            const container = document.getElementById("sliderContainer");
-            if (!container) return;
-            container.innerHTML = "";
-            
-            const homeRow = data.find(d => d.dataid == homeId);
-            if (!homeRow) { container.innerHTML = "No data found."; return; }
+        drawChart(bldg);
+        document.getElementById("msg").innerText = "";
 
-            const cats = ["HVAC", "Water_Heating_Pumps", "Kitchen_Refrigeration", "Laundry", "Lighting_Plugs_Rooms"];
-            const prettyCats = { "HVAC":"Heating & AC", "Water_Heating_Pumps":"Water Heating", "Kitchen_Refrigeration":"Kitchen & Fridge", "Laundry":"Laundry", "Lighting_Plugs_Rooms":"Lights & Plugs" };
-            const sliderState = {}; 
-            cats.forEach(c => sliderState[c] = 0);
-
-            // A. Create Sliders
-            cats.forEach(cat => {
-                const div = document.createElement("div");
-                div.style.marginBottom = "15px";
-                div.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-weight:bold; font-size:0.9em;">${prettyCats[cat]}</span>
-                        <span id="lbl_${cat}" style="color:#007bff; font-weight:bold;">0%</span>
-                    </div>`;
-                const input = document.createElement("input");
-                input.type = "range"; input.min = 0; input.max = 50; input.step = 5; input.value = 0;
-                input.className = "savings-slider"; input.style.width = "100%";
-                input.oninput = function() {
-                    document.getElementById("lbl_"+cat).innerText = "-" + this.value + "%";
-                    sliderState[cat] = this.value / 100;
-                    updateProjectedChart();
-                };
-                div.appendChild(input); container.appendChild(div);
-            });
-// B. Chart Update Function (Revised with Date Range)
-            function updateProjectedChart() {
-                // Filter for valid months
-                const months = dateCols.filter(m => homeRow[m] && +homeRow[m] > 0);
-                
-                const currCosts = [], projCosts = [];
-                let totalSavings = 0;
-
-                months.forEach(m => {
-                    const kwh = parseFloat(homeRow[m]);
-                    const currBill = calculateCost(kwh, m);
-                    const dObj = new Date(m);
-                    const season = getSeasonName(dObj.getMonth() + 1);
-                    const pcts = getSeasonPcts(homeId, season);
-
-                    let savedKwh = 0;
-                    if (pcts) {
-                        cats.forEach(c => {
-                            const catKwh = kwh * pcts[c];
-                            savedKwh += catKwh * sliderState[c];
-                        });
-                    }
-                    const newBill = calculateCost(kwh - savedKwh, m);
-                    currCosts.push(currBill);
-                    projCosts.push(newBill);
-                    totalSavings += (currBill - newBill);
+        // ---- Seasonal Charts ----
+        Promise.all([
+            d3.csv("Category_SummerDailyAvg.csv"),
+            d3.csv("Category_WinterDailyAvg.csv")
+        ]).then(([summer, winter]) => {
+            function avgRow(d) {
+                const result = {};
+                d.columns.slice(1).forEach(col => {
+                    const vals = d.map(r => +r[col]).filter(v => v > 0);
+                    if (vals.length > 0) result[col] = d3.mean(vals);
                 });
+                return result;
+            }
+            const sAvg = avgRow(summer);
+            const wAvg = avgRow(winter);
 
-                // --- NEW: Dynamic Range Text ---
-                const monthCount = months.length;
-                let rangeText = "";
-                
-                if (monthCount > 0) {
-                    // Sort months to ensure we get the correct Start/End
-                    // (Assuming ISO format YYYY-MM-DD from previous fix)
-                    months.sort(); 
-                    
-                    const formatDate = (dateStr) => {
-                        const d = new Date(dateStr);
-                        // Format: "May 2024"
-                        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            function prepPercent(row, avg, labelHome, labelAvg) {
+                if (!row) return [];
+                const entries = Object.keys(row).filter(k => k !== "dataid" && +row[k] > 0)
+                    .map(k => ({ cat: k, val: +row[k] }));
+                const total = d3.sum(entries, d => d.val);
+                const homeData = entries.map(d => ({ cat: d.cat, val: d.val / total * 100, raw: d.val, type: labelHome }));
+                const avgEntries = Object.keys(avg).filter(k => avg[k] > 0).map(k => ({ cat: k, val: avg[k] }));
+                const avgTotal = d3.sum(avgEntries, d => d.val);
+                const avgData = avgEntries.map(d => ({ cat: d.cat, val: d.val / avgTotal * 100, raw: d.val, type: labelAvg }));
+                return [...homeData, ...avgData];
+            }
+
+            function makeTraces(data) {
+                const types = [...new Set(data.map(d => d.type))];
+                return types.map((t, i) => {
+                    const filtered = data.filter(d => d.type === t);
+                    return {
+                        x: filtered.map(d => d.cat),
+                        y: filtered.map(d => d.val),
+                        name: t, type: "bar",
+                        text: filtered.map(d => d.val.toFixed(1) + "%"),
+                        textposition: "outside",
+                        marker: { color: i === 0 ? '#0071e3' : '#ff9f0a', opacity: 0.9 }
                     };
-                    
-                    const startStr = formatDate(months[0]);
-                    const endStr = formatDate(months[monthCount - 1]);
-                    rangeText = `Based on usage from ${startStr} – ${endStr}`;
+                });
+            }
+
+            function drawHourlyChart(homeId) {
+                Plotly.d3.csv("HourlyEnergy.csv", function(err, rows) {
+                    if (err) return;
+                    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
+                    const hours = filtered.map(r => +r.hour);
+                    const values = filtered.map(r => +r.grid);
+                    const grouped = d3.nest().key(d => +d.hour).rollup(v => d3.mean(v, d => +d.grid)).entries(rows);
+                    const avgHours  = grouped.map(d => d.key);
+                    const avgValues = grouped.map(d => d.value);
+                    safePlot("hourlyChart", [
+                        { x: hours, y: values, type:"scatter", mode:"lines+markers",
+                          text: values.map(v => v.toFixed(1) + " kWh"), textposition:"top center",
+                          line: { color:'#0071e3', width:2.5 }, marker:{ size:6 }, name:"Home " + homeId },
+                        { x: avgHours, y: avgValues, type:"scatter", mode:"lines",
+                          line:{ color:"#ff9f0a", dash:"dot" }, name:"Community Average" }
+                    ], {
+                        xaxis: { title:"Hour of Day", tickmode:"linear", dtick:1, range:[0,23] },
+                        yaxis: { title:"Energy Use (kWh)" }
+                    });
+                });
+            }
+
+            function drawDayOfWeekChart(homeId) {
+                Plotly.d3.csv("DayOfWeek.csv", function(err, rows) {
+                    if (err) return;
+                    const dayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+                    const filtered = rows.filter(r => Number(r.dataid) === Number(homeId));
+                    const days   = filtered.map(r => dayNames[+r.day_of_week]);
+                    const values = filtered.map(r => +r.grid);
+                    const grouped = d3.nest().key(d => +d.day_of_week).rollup(v => d3.mean(v, d => +d.grid)).entries(rows);
+                    const avgDays   = grouped.map(d => dayNames[d.key]);
+                    const avgValues = grouped.map(d => d.value);
+                    safePlot("dayOfWeekChart", [
+                        { x:days, y:values, type:"bar", text:values.map(v=>v.toFixed(1)+" kWh"),
+                          textposition:"outside", marker:{color:'#0071e3', opacity:0.9}, name:"Home "+homeId },
+                        { x:avgDays, y:avgValues, type:"bar", text:avgValues.map(v=>v.toFixed(1)+" kWh"),
+                          textposition:"outside", marker:{color:'#ff9f0a', opacity:0.9}, name:"Community Average" }
+                    ], {
+                        barmode:"group",
+                        xaxis:{ title:"Day of Week" },
+                        yaxis:{ title:"Energy Use (kWh)" }
+                    });
+                });
+            }
+
+            function drawHomeInfo(homeId) {
+                d3.csv("PropertyData.csv").then(rows => {
+                    const row = rows.find(r => Number(r["dataid"]) === Number(homeId));
+                    const card = document.getElementById("homeInfoCard");
+                    if (!row) { card.innerHTML = "No info available."; return; }
+                    const infoItems = [
+                        { icon:"🏠", label:"Exterior Wall",  value: row["Exterior Wall"] },
+                        { icon:"📅", label:"Year Built",     value: row["Year Built"] },
+                        { icon:"📐", label:"Sq Ft",          value: row["Res Sq Ft"] },
+                        { icon:"🛏️", label:"Bedrooms",       value: row["Bedrooms"] },
+                        { icon:"🔥", label:"Heating System", value: row["Heating System"] },
+                        { icon:"💨", label:"Heat",           value: row["Heat"] },
+                        { icon:"📊", label:"Grade Factor",   value: row["Grade Factor"] },
+                        { icon:"💲", label:"Assessed Value", value: row["Assessed Value"] }
+                    ];
+                    card.innerHTML = infoItems.map(item => `
+                        <div class="info-item anim-fade">
+                          <div class="info-icon">${item.icon}</div>
+                          <div class="info-content">
+                            <div class="info-label">${item.label}</div>
+                            <div class="info-value">${item.value || '—'}</div>
+                          </div>
+                        </div>`).join("");
+                });
+            }
+
+            function drawMonthlyCostChart(homeId) {
+                d3.csv("EnergyCost.csv").then(costData => {
+                    const row = costData.find(r => r.dataid === homeId);
+                    if (!row) { document.getElementById("monthlyCostChart").innerHTML = "No cost data."; return; }
+                    const months = Object.keys(row).filter(k => k !== "dataid");
+                    const values = months.map(m => row[m] ? +row[m] : null);
+                    const avgValues = months.map(m => {
+                        const nums = costData.map(r => r[m] ? +r[m] : NaN).filter(v => !isNaN(v));
+                        return nums.length ? d3.mean(nums) : null;
+                    });
+                    Plotly.newPlot("monthlyCostChart", [
+                        { x:months, y:values, type:"scatter", mode:"lines+markers", name:"Home "+homeId,
+                          line:{ color:'#0071e3', width:2.5 }, marker:{ size:7 } },
+                        { x:months, y:avgValues, type:"scatter", mode:"lines+markers", name:"Community Average",
+                          line:{ color:"#ff9f0a", width:2 }, marker:{ size:5 } }
+                    ], applyTemplate({ yaxis:{ title:"Monthly Cost ($)" } }), PLOTLY_CONFIG);
+                });
+            }
+
+            function drawSeasonCharts(homeId) {
+                document.getElementById("msg").innerText = "";
+                const sRow = summer.find(d => String(d.dataid).trim() === String(homeId).trim());
+                const wRow = winter.find(d => String(d.dataid).trim() === String(homeId).trim());
+                const summerData = sRow ? prepPercent(sRow, sAvg, "Home "+homeId, "Community Average") : [];
+                const winterData = wRow ? prepPercent(wRow, wAvg, "Home "+homeId, "Community Average") : [];
+                const maxValS = d3.max(summerData, d => d.val) || 0;
+                const maxValW = d3.max(winterData, d => d.val) || 0;
+                safePlot("summerChart", makeTraces(summerData), {
+                    barmode:"group",
+                    yaxis:{ title:"% of total household energy", range:[0, maxValS*1.25] },
+                    xaxis:{ title:"Category" }
+                });
+                safePlot("winterChart", makeTraces(winterData), {
+                    barmode:"group",
+                    yaxis:{ title:"% of total household energy", range:[0, maxValW*1.25] },
+                    xaxis:{ title:"Category" }
+                });
+            }
+
+            // ---- Master Handler ----
+            const usageSelect = document.getElementById("homeSelect");
+            const costSelect  = document.getElementById("homeSelectCost");
+
+            function handleGlobalChange(newId) {
+                if (usageSelect.value !== newId) usageSelect.value = newId;
+                if (costSelect.value  !== newId) costSelect.value  = newId;
+                const url = new URL(window.location);
+                url.searchParams.set("bldg", newId);
+                window.history.replaceState({}, "", url);
+                drawChart(newId);
+                drawMonthlyCostChart(newId);
+                drawSeasonCharts(newId);
+                drawHourlyChart(newId);
+                drawDayOfWeekChart(newId);
+                drawHomeInfo(newId);
+                const selectedData = data.find(d => d.dataid == newId);
+                if (selectedData) {
+                    drawCostChart(selectedData, avgByMonth);
+                    if (window.drawSavingsCalculator) window.drawSavingsCalculator(newId);
+                }
+            }
+
+            usageSelect.addEventListener("change", e => handleGlobalChange(e.target.value));
+            costSelect.addEventListener("change",  e => handleGlobalChange(e.target.value));
+
+            if (data.find(d => d.dataid === bldg)) handleGlobalChange(bldg);
+
+            // ---- Savings Calculator ----
+            Promise.all([
+                d3.csv("Category_SummerDailyAvg.csv"),
+                d3.csv("Category_WinterDailyAvg.csv"),
+                d3.csv("Category_SpringDailyAvg.csv"),
+                d3.csv("Category_FallDailyAvg.csv")
+            ]).then(([summerS, winterS, springS, fallS]) => {
+                const seasons = { summer:summerS, winter:winterS, spring:springS, fall:fallS };
+                const getSeasonName = m => [6,7,8].includes(m)?'summer':[12,1,2].includes(m)?'winter':[3,4,5].includes(m)?'spring':'fall';
+
+                function getSeasonPcts(homeId, seasonName) {
+                    const row = seasons[seasonName].find(d => d.dataid == homeId);
+                    if (!row) return null;
+                    const cats = ["HVAC","Water_Heating_Pumps","Kitchen_Refrigeration","Laundry","Lighting_Plugs_Rooms"];
+                    let total = 0;
+                    const vals = {};
+                    cats.forEach(c => { const v = parseFloat(row[c])||0; vals[c]=v; total+=v; });
+                    if (total === 0) return null;
+                    const pcts = {};
+                    cats.forEach(c => pcts[c] = vals[c]/total);
+                    return pcts;
                 }
 
-                // Update Green Bar with Context
-                const bigNum = document.getElementById("savingsBigNumber");
-                bigNum.innerHTML = `
-                    <div style="font-size:1.1em; margin-bottom:4px;">
-                        Estimated Savings <span style="font-weight:normal; font-size:0.9em;">(over ${monthCount} months)</span>: 
-                        <strong>$${totalSavings.toFixed(2)}</strong>
-                    </div>
-                    <div style="font-size:0.85em; font-weight:normal; opacity:0.85;">
-                        ${rangeText}
-                    </div>
-                `;
-                
-                // Update Chart
-                Plotly.react("savingsResultChart", [
-                    { x: months, y: currCosts, type: "scatter", mode: "lines+markers", name: "Current", line:{color:"#343a40", width:2} },
-                    { x: months, y: projCosts, type: "scatter", mode: "lines+markers", name: "Projected", line:{color:"#28a745", width:2, dash:"dot"}, fill:"tonexty" }
-                ], { 
-                    title: "Projected Bill Savings", yaxis: {title:"Cost ($)"}, 
-                    template: "simple_white", margin: {t:40, b:40, l:60, r:20}, legend: {orientation:"h", y:1.1}
-                }, {displayModeBar: false});
-            }
-            updateProjectedChart();
-        };
+                const prettyCats = {
+                    "HVAC":"Heating & AC",
+                    "Water_Heating_Pumps":"Water Heating",
+                    "Kitchen_Refrigeration":"Kitchen & Fridge",
+                    "Laundry":"Laundry",
+                    "Lighting_Plugs_Rooms":"Lights & Plugs"
+                };
 
-        // Reset Button Logic
-        window.resetSliders = function() {
-            document.querySelectorAll(".savings-slider").forEach(s => { s.value=0; s.dispatchEvent(new Event('input')); });
-        };
+                window.drawSavingsCalculator = function(homeId) {
+                    const container = document.getElementById("sliderContainer");
+                    if (!container) return;
+                    container.innerHTML = "";
+                    const homeRow = data.find(d => d.dataid == homeId);
+                    if (!homeRow) { container.innerHTML = "<p>No data found.</p>"; return; }
+                    const cats = ["HVAC","Water_Heating_Pumps","Kitchen_Refrigeration","Laundry","Lighting_Plugs_Rooms"];
+                    const sliderState = {};
+                    cats.forEach(c => sliderState[c] = 0);
 
-        // Initialize Calculator
-        if (typeof bldg !== 'undefined') drawSavingsCalculator(bldg);
+                    cats.forEach(cat => {
+                        const div = document.createElement("div");
+                        div.style.marginBottom = "18px";
+                        div.innerHTML = `
+                            <div class="slider-label-row">
+                              <span class="slider-name">${prettyCats[cat]}</span>
+                              <span class="slider-value" id="lbl_${cat}">0%</span>
+                            </div>`;
+                        const input = document.createElement("input");
+                        input.type = "range"; input.min = 0; input.max = 50; input.step = 5; input.value = 0;
+                        input.className = "savings-slider";
+                        input.style.setProperty('--val', '0%');
+                        input.oninput = function() {
+                            const pct = this.value / 50 * 100;
+                            this.style.setProperty('--val', pct + '%');
+                            document.getElementById("lbl_"+cat).innerText = "-" + this.value + "%";
+                            sliderState[cat] = this.value / 100;
+                            updateProjectedChart();
+                        };
+                        div.appendChild(input);
+                        container.appendChild(div);
+                    });
 
-        // Hook into Cost Dropdown
-        const costSelect = document.getElementById("homeSelectCost");
-        if(costSelect) {
-            costSelect.addEventListener("change", function() {
-                drawSavingsCalculator(this.value);
+                    function updateProjectedChart() {
+                        const months = dateCols.filter(m => homeRow[m] && +homeRow[m] > 0);
+                        const currCosts = [], projCosts = [];
+                        let totalSavings = 0;
+                        months.forEach(m => {
+                            const kwh = parseFloat(homeRow[m]);
+                            const currBill = calculateCost(kwh, m);
+                            const season   = getSeasonName(new Date(m).getMonth() + 1);
+                            const pcts     = getSeasonPcts(homeId, season);
+                            let savedKwh = 0;
+                            if (pcts) cats.forEach(c => { savedKwh += (kwh * pcts[c]) * sliderState[c]; });
+                            const newBill = calculateCost(kwh - savedKwh, m);
+                            currCosts.push(currBill);
+                            projCosts.push(newBill);
+                            totalSavings += (currBill - newBill);
+                        });
+                        const monthCount = months.length;
+                        let rangeText = "";
+                        if (monthCount > 0) {
+                            months.sort();
+                            const fmt = s => new Date(s).toLocaleDateString('en-US',{month:'short',year:'numeric'});
+                            rangeText = `Based on usage from ${fmt(months[0])} – ${fmt(months[monthCount-1])}`;
+                        }
+                        const bigNum = document.getElementById("savingsBigNumber");
+                        bigNum.innerHTML = `
+                            <div style="font-size:1em; margin-bottom:4px;">
+                              Estimated Savings <span style="font-weight:400; font-size:0.88em;">(over ${monthCount} months)</span>:
+                              <strong>$${totalSavings.toFixed(2)}</strong>
+                            </div>
+                            <div style="font-size:0.82em; font-weight:400; opacity:0.75;">${rangeText}</div>`;
+
+                        Plotly.react("savingsResultChart", [
+                            { x:months, y:currCosts, type:"scatter", mode:"lines+markers", name:"Current",
+                              line:{ color:"#1d1d1f", width:2.5 }, marker:{ size:6 } },
+                            { x:months, y:projCosts, type:"scatter", mode:"lines+markers", name:"Projected",
+                              line:{ color:"#34c759", width:2.5, dash:"dot" }, fill:"tonexty",
+                              fillcolor:"rgba(52,199,89,0.08)", marker:{ size:6 } }
+                        ], applyTemplate({
+                            yaxis:{ title:"Cost ($)" },
+                            legend:{ orientation:"h", y:1.1 },
+                            margin:{ t:20, b:40, l:56, r:20 }
+                        }), PLOTLY_CONFIG);
+                    }
+                    updateProjectedChart();
+                };
+
+                window.resetSliders = function() {
+                    document.querySelectorAll(".savings-slider").forEach(s => {
+                        s.value = 0;
+                        s.style.setProperty('--val', '0%');
+                        s.dispatchEvent(new Event('input'));
+                    });
+                };
+
+                if (typeof bldg !== 'undefined') drawSavingsCalculator(bldg);
+
+                const cSelect = document.getElementById("homeSelectCost");
+                if (cSelect) cSelect.addEventListener("change", function() { drawSavingsCalculator(this.value); });
             });
-        }
-    });
-}).catch(err => {
-  document.getElementById("msg").innerText = "Error loading CSV: " + err;
-  console.error(err);
-});
+
+        }).catch(err => {
+            document.getElementById("msg").innerText = "Error loading CSV: " + err;
+        });
     }).catch(err => {
-      document.getElementById("msg").innerText = "Error loading CSV: " + err;
-      console.error(err);
+        document.getElementById("msg").innerText = "Error loading CSV: " + err;
     });
-// Tab switching with Auto-Resize Fix
-function openTab(evt, tabName) {
-  // 1. Standard Tab Logic
-  document.querySelectorAll(".tabcontent").forEach(el => el.style.display = "none");
-  document.querySelectorAll(".tablinks").forEach(el => el.classList.remove("active"));
-  document.getElementById(tabName).style.display = "block";
-  evt.currentTarget.classList.add("active");
 
-  // 2. FORCE RESIZE for all charts in the newly visible tab
-  // This fixes the "squished" chart issue
-  const visibleCharts = document.getElementById(tabName).querySelectorAll('.js-plotly-plot');
-  visibleCharts.forEach(chartDiv => {
-    Plotly.Plots.resize(chartDiv);
-  });
-}
-// Open default tab
-document.getElementById("defaultOpen").click();
-// ===== Forecast Logic with Unit Toggle =====
-let weatherUnit = 'fahrenheit'; // Default to Fahrenheit for Atlanta
+    // =============================================
+    // TAB SWITCHING
+    // =============================================
+    function openTab(evt, tabName) {
+        document.querySelectorAll(".tabcontent").forEach(el => el.style.display = "none");
+        document.querySelectorAll(".tablinks").forEach(el => el.classList.remove("active"));
+        const tab = document.getElementById(tabName);
+        tab.style.display = "block";
+        // Re-trigger animation
+        tab.style.animation = 'none';
+        tab.offsetHeight; // reflow
+        tab.style.animation = '';
+        evt.currentTarget.classList.add("active");
+        tab.querySelectorAll('.js-plotly-plot').forEach(chartDiv => Plotly.Plots.resize(chartDiv));
+    }
 
-function toggleWeatherUnit() {
-  weatherUnit = (weatherUnit === 'fahrenheit') ? 'celsius' : 'fahrenheit';
-  loadForecast(); // Reload data with new unit
-}
+    document.getElementById("defaultOpen").click();
 
-function loadForecast() {
-  const isF = (weatherUnit === 'fahrenheit');
-  const unitUrl = isF ? "&temperature_unit=fahrenheit" : ""; // API defaults to Celsius if blank
-  
-  // 1. Update Button Text
-  const btn = document.getElementById("weatherToggleBtn");
-  if (btn) btn.innerText = isF ? "Switch to °C" : "Switch to °F";
-
-  // 2. Fetch Data
-  fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,apparent_temperature,cloudcover,shortwave_radiation&timezone=America/New_York" + unitUrl)
-    .then(res => res.json())
-    .then(data => {
-      const times = data.hourly.time;
-      const temp = data.hourly.temperature_2m;
-      const appTemp = data.hourly.apparent_temperature;
-      const cloud = data.hourly.cloudcover;
-      const solar = data.hourly.shortwave_radiation;
-
-      // 3. Define Dynamic Variables based on Unit
-      const unitLabel = isF ? "°F" : "°C";
-      const yMin = isF ? 68 : 20; // Comfort Zone Bottom
-      const yMax = isF ? 79 : 26; // Comfort Zone Top
-      const czLabel = isF ? "Comfort Zone (68°F - 79°F)" : "Comfort Zone (20°C - 26°C)";
-      const czCenter = (yMin + yMax) / 2;
-
-      // 4. Draw Temperature Chart
-      const comfortZone = {
-        type: "rect", xref: "x", yref: "y",
-        x0: times[0], x1: times[times.length - 1],
-        y0: yMin, y1: yMax,
-        fillcolor: "rgba(0,200,0,0.1)", line: { width: 0 }, layer: "below"
-      };
-
-      Plotly.newPlot("tempChart", [
-        { x: times, y: temp, type: "scatter", mode: "lines", name: `Air Temp (${unitLabel})`, line: { color: "red" } },
-        { x: times, y: appTemp, type: "scatter", mode: "lines", name: `Feels Like (${unitLabel})`, line: { color: "orange", dash: "dot" } }
-      ], {
-        title: "Hourly Temperature vs. Apparent Temperature",
-        xaxis: { title: "Time" },
-        yaxis: { title: unitLabel },
-        hovermode: "x unified",
-        shapes: [comfortZone],
-        annotations: [{
-          xref: "paper", yref: "y", x: 1.02, y: czCenter,
-          text: czLabel, showarrow: false,
-          font: { color: "green" }
-        }]
-      }, {responsive: true});
-
-      // 5. Draw Other Charts (Unchanged)
-      Plotly.newPlot("cloudChart", [
-        { x: times, y: cloud, type: "scatter", mode: "lines", name: "Cloud Cover (%)", line: { color: "gray" }, fill: "tozeroy", fillcolor: "rgba(128,128,128,0.3)" }
-      ], { title: "Hourly Cloud Cover", xaxis: { title: "Time" }, yaxis: { title: "%" }, hovermode: "x unified" }, {responsive: true});
-
-      Plotly.newPlot("solarChart", [
-        { x: times, y: solar, type: "scatter", mode: "lines", name: "Solar Radiation (W/m²)", line: { color: "gold" }, fill: "tozeroy", fillcolor: "rgba(255,215,0,0.3)" }
-      ], { title: "Hourly Solar Radiation", xaxis: { title: "Time" }, yaxis: { title: "W/m²" }, hovermode: "x unified" }, {responsive: true});
+    window.addEventListener('resize', () => {
+        document.querySelectorAll('.js-plotly-plot').forEach(chart => Plotly.Plots.resize(chart));
     });
-}
 
-// Hook forecast loader to Forecast tab button
-const forecastTabBtn = document.querySelector("button[onclick*='Forecast']");
-if(forecastTabBtn) forecastTabBtn.addEventListener("click", loadForecast);
-    // Auto-resize charts when window size changes
-window.addEventListener('resize', () => {
-  document.querySelectorAll('.js-plotly-plot').forEach(chart => Plotly.Plots.resize(chart));
-});
+    // =============================================
+    // FORECAST
+    // =============================================
+    let weatherUnit = 'fahrenheit';
+
+    function toggleWeatherUnit() {
+        weatherUnit = weatherUnit === 'fahrenheit' ? 'celsius' : 'fahrenheit';
+        loadForecast();
+    }
+
+    function loadForecast() {
+        const isF   = weatherUnit === 'fahrenheit';
+        const unitUrl = isF ? "&temperature_unit=fahrenheit" : "";
+        const btn = document.getElementById("weatherToggleBtn");
+        if (btn) btn.innerText = isF ? "⇄ Switch to °C" : "⇄ Switch to °F";
+
+        fetch("https://api.open-meteo.com/v1/forecast?latitude=33.749&longitude=-84.388&hourly=temperature_2m,apparent_temperature,cloudcover,shortwave_radiation&timezone=America/New_York" + unitUrl)
+            .then(res => res.json())
+            .then(d => {
+                const times = d.hourly.time;
+                const temp  = d.hourly.temperature_2m;
+                const appTemp = d.hourly.apparent_temperature;
+                const cloud = d.hourly.cloudcover;
+                const solar = d.hourly.shortwave_radiation;
+                const unitLabel = isF ? "°F" : "°C";
+                const yMin  = isF ? 68 : 20;
+                const yMax  = isF ? 79 : 26;
+                const czCenter = (yMin + yMax) / 2;
+
+                Plotly.newPlot("tempChart", [
+                    { x:times, y:temp,    type:"scatter", mode:"lines", name:`Air Temp (${unitLabel})`,   line:{color:"#ff3b30", width:2} },
+                    { x:times, y:appTemp, type:"scatter", mode:"lines", name:`Feels Like (${unitLabel})`, line:{color:"#ff9f0a", dash:"dot", width:2} }
+                ], applyTemplate({
+                    xaxis: { title:"Time" },
+                    yaxis: { title:unitLabel },
+                    hovermode:"x unified",
+                    shapes:[{ type:"rect", xref:"x", yref:"y",
+                              x0:times[0], x1:times[times.length-1],
+                              y0:yMin, y1:yMax,
+                              fillcolor:"rgba(52,199,89,0.10)", line:{width:0}, layer:"below" }],
+                    annotations:[{ xref:"paper", yref:"y", x:1.01, y:czCenter,
+                                   text:"Comfort Zone", showarrow:false, font:{color:"#34c759",size:12} }]
+                }), PLOTLY_CONFIG);
+
+                Plotly.newPlot("cloudChart", [
+                    { x:times, y:cloud, type:"scatter", mode:"lines", name:"Cloud Cover (%)",
+                      line:{color:"#6e6e73"}, fill:"tozeroy", fillcolor:"rgba(110,110,115,0.15)" }
+                ], applyTemplate({ xaxis:{title:"Time"}, yaxis:{title:"%"}, hovermode:"x unified" }), PLOTLY_CONFIG);
+
+                Plotly.newPlot("solarChart", [
+                    { x:times, y:solar, type:"scatter", mode:"lines", name:"Solar Radiation (W/m²)",
+                      line:{color:"#ff9f0a"}, fill:"tozeroy", fillcolor:"rgba(255,159,10,0.15)" }
+                ], applyTemplate({ xaxis:{title:"Time"}, yaxis:{title:"W/m²"}, hovermode:"x unified" }), PLOTLY_CONFIG);
+            });
+    }
+
+    const forecastTabBtn = document.querySelector("button[onclick*='Forecast']");
+    if (forecastTabBtn) forecastTabBtn.addEventListener("click", loadForecast);
 </script>
 </body>
 </html>
