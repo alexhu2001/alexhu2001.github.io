@@ -1117,7 +1117,7 @@ const PLOTLY_CONFIG = { responsive: true, displayModeBar: false };
                 return types.map((t, i) => {
                     const filtered = data.filter(d => d.type === t);
                     return {
-                        x: filtered.map(d => d.cat),
+                        x: filtered.map(d => prettyCats[d.cat] || d.cat),
                         y: filtered.map(d => d.val),
                         name: t, type: "bar",
                         text: filtered.map(d => d.val.toFixed(1) + "%"),
