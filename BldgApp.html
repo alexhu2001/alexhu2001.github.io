@@ -1228,12 +1228,12 @@ const PLOTLY_CONFIG = { responsive: true, displayModeBar: false };
                 safePlot("summerChart", makeTraces(summerData), {
                     barmode:"group",
                     yaxis:{ title:"% of total household energy", range:[0, maxValS*1.25] },
-                    xaxis:{ title:"Category" }
+                    xaxis:{ title:"Category", showgrid: false }
                 });
                 safePlot("winterChart", makeTraces(winterData), {
                     barmode:"group",
                     yaxis:{ title:"% of total household energy", range:[0, maxValW*1.25] },
-                    xaxis:{ title:"Category" }
+                    xaxis:{ title:"Category", showgrid: false }
                 });
             }
 
