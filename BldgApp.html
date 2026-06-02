@@ -195,12 +195,12 @@
      CARDS
   ============================================= */
   .card {
-    background: var(--bg-secondary);
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    /*backdrop-filter: blur(12px);
-    /*-webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     transition: var(--transition);
     overflow: hidden;
   }
@@ -808,8 +808,8 @@ This helps you notice simple patterns, like using more power in the evenings or 
 const PLOTLY_TEMPLATE = {
   layout: {
     font: { family: "'Figtree', -apple-system, sans-serif", size: 13, color: '#1d1d1f' },
-    paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor:  'rgba(0,0,0,0)',
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor:  '#ffffff',
     colorway: ['#0071e3','#34c759','#ff9f0a','#ff3b30','#5ac8fa','#bf5af2'],
     xaxis: {
       gridcolor: 'rgba(0,0,0,0.06)',
